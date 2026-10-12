@@ -1,0 +1,22 @@
+{
+  "listenHost": "127.0.0.1",
+  "listenPort": 8080,
+  "publicBaseUrl": "https://notes.example.org",
+  "dataDir": "data",
+  "trustedProxyIp": "10.0.0.2",
+  "sessionSignKey": "REPLACE_ME_WITH_OUTPUT_OF_knote_key",
+  "sessionHours": 12,
+  "unlockAttemptsPerMinute": 5,
+  "loginAttemptsPerMinute": 10,
+  "cryptoParallelism": 1,
+  "minSheetPasswordLength": 12,
+  "maxSheetBytes": 1048576,
+  "oidc": {
+    "authorizeUrl": "https://id.example.org/authorize",
+    "tokenUrl": "https://id.example.org/api/oidc/token",
+    "userinfoUrl": "https://id.example.org/api/oidc/userinfo",
+    "clientId": "REPLACE_ME",
+    "clientSecret": "REPLACE_ME",
+    "allowedSubjects": ["REPLACE_ME"]
+  }
+}

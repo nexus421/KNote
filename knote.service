@@ -1,0 +1,24 @@
+[Unit]
+Description=KNote, notes with optional password per sheet
+# This is an example. Edit it to your needs.
+After=network-online.target
+Wants=network-online.target
+# A start that keeps failing (e.g. a taken port) gives up after 5 attempts in 5 minutes
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=knote
+WorkingDirectory=/home/knote
+ExecStart=/usr/lib/jvm/java-25-amazon-corretto/bin/java -jar /home/knote/knote.jar config=/home/knote/config.json
+Restart=on-failure
+RestartSec=5
+# 64 (EX_USAGE): unknown argument. 65 (EX_DATAERR): broken sheet files. 78 (EX_CONFIG): rejected config.
+# A restart fixes none of them. Fix it, then run `systemctl restart knote`.
+RestartPreventExitStatus=64 65 78
+# 143: the JVM's exit code after a SIGTERM (systemctl stop), which is a clean stop, not a failure
+SuccessExitStatus=143
+
+[Install]
+WantedBy=multi-user.target
