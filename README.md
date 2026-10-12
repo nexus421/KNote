@@ -14,7 +14,7 @@ through OIDC.
 * Markdown with tables, strikethrough and task lists, preview in the editor
 * Any path per sheet, e.g. `https://notes.example.org/projects/knote`
 * Optional password per sheet, content encrypted with AES-GCM
-* Admin login through an OIDC provider such as Pocket ID, several admin accounts possible
+* Admin login through an OIDC provider such as Pocket ID, access is managed there
 * Rate limits on password attempts and login
 * No database, no JavaScript: one JSON file per sheet, one config file, one JAR
 
@@ -32,14 +32,17 @@ java -jar build/libs/knote.jar
 ```
 
 Fill in `config.json` before the check: your public URL, the session key, the OIDC client and the address of your
-reverse proxy. For a local try without TLS, `http://localhost:8080` works as public URL.
+reverse proxy. Register KNote at your OIDC provider with the callback `<public URL>/_auth/callback`. Every account
+that logs in there is admin, so limit the client to a user group
+(see [Deployment](docs/deployment.md#5-who-may-log-in)).
+For a local try without TLS, `http://localhost:8080` works as public URL.
 
 Tests: `./gradlew test`, also run on every push.
 
 ## Documentation
 
 * [Configuration and command line](docs/configuration.md)
-* [Deployment](docs/deployment.md): systemd, reverse proxy, OIDC client, first login
+* [Deployment](docs/deployment.md): systemd, reverse proxy, OIDC client, who may log in
 * [How it works](docs/how-it-works.md): endpoints, encryption, login, security
 
 ## Note on AI

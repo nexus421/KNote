@@ -3,39 +3,19 @@ package bayern.kickner.knote.auth
 import bayern.kickner.klogger.KLogger
 import bayern.kickner.klogger.staticLog
 import bayern.kickner.knote.config.AppConfig
-import bayern.kickner.knote.web.ADMIN_PATH
-import bayern.kickner.knote.web.PageLink
-import bayern.kickner.knote.web.onlyFrom
-import bayern.kickner.knote.web.respondMessage
-import bayern.kickner.knote.web.respondSeeOther
-import io.ktor.client.HttpClient
-import io.ktor.client.request.bearerAuth
-import io.ktor.client.request.get
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.Cookie
-import io.ktor.http.HttpMethod
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.isSuccess
-import io.ktor.server.application.ApplicationCall
-import io.ktor.server.application.install
-import io.ktor.server.auth.AuthenticationConfig
-import io.ktor.server.auth.OAuthAccessTokenResponse
-import io.ktor.server.auth.OAuthServerSettings
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.oauth
-import io.ktor.server.auth.principal
-import io.ktor.server.plugins.csrf.CSRF
-import io.ktor.server.plugins.ratelimit.RateLimitName
-import io.ktor.server.plugins.ratelimit.rateLimit
-import io.ktor.server.response.respondRedirect
-import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.route
-import io.ktor.server.sessions.clear
-import io.ktor.server.sessions.sessions
-import io.ktor.server.sessions.set
-import io.ktor.util.date.GMTDate
+import bayern.kickner.knote.web.*
+import io.ktor.client.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.plugins.csrf.*
+import io.ktor.server.plugins.ratelimit.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import io.ktor.server.sessions.*
+import io.ktor.util.date.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
@@ -73,7 +53,7 @@ sealed interface LoginDecision {
     /** [sub] is configured as admin. */
     data class Allowed(val sub: String) : LoginDecision
 
-    /** [sub] logged in at the provider but is not an admin of KNote. */
+    /** [sub] logged in at the provider but is not in the configured `allowedSubjects`. */
     data class Denied(val sub: String) : LoginDecision
 
     /** The provider did not answer as expected. [reason] is safe to log. */
@@ -116,12 +96,12 @@ fun stateMatches(cookieValue: String?, state: String?): Boolean {
     return MessageDigest.isEqual(cookieValue.toByteArray(), state.toByteArray())
 }
 
-/** Reads `sub` from the userinfo response [body] and checks it against [allowedSubjects]. */
+/** Reads `sub` from the userinfo response [body] and checks it with [isAdmin]. */
 fun evaluateUserinfo(body: String, allowedSubjects: List<String>): LoginDecision {
     val sub = runCatching { Json.parseToJsonElement(body).jsonObject["sub"]?.jsonPrimitive?.contentOrNull }.getOrNull()
     return when {
         sub.isNullOrBlank() -> LoginDecision.Failed("userinfo response has no sub")
-        sub in allowedSubjects -> LoginDecision.Allowed(sub)
+        isAdmin(sub, allowedSubjects) -> LoginDecision.Allowed(sub)
         else -> LoginDecision.Denied(sub)
     }
 }

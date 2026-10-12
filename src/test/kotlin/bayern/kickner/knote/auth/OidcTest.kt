@@ -1,31 +1,12 @@
 package bayern.kickner.knote.auth
 
-import bayern.kickner.knote.ADMIN_SUB
-import bayern.kickner.knote.PROVIDER
-import bayern.kickner.knote.PUBLIC_BASE_URL
-import bayern.kickner.knote.TEST_SIGN_KEY
-import bayern.kickner.knote.TestClock
-import bayern.kickner.knote.adminGet
-import bayern.kickner.knote.adminPost
-import bayern.kickner.knote.knoteApp
-import bayern.kickner.knote.login
-import bayern.kickner.knote.startLogin
-import bayern.kickner.knote.testConfig
-import io.ktor.client.request.forms.submitForm
-import io.ktor.client.request.get
-import io.ktor.client.request.header
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.Url
-import io.ktor.http.parseServerSetCookieHeader
-import io.ktor.server.testing.testApplication
-import kotlin.test.Test
-import kotlin.test.assertContains
-import kotlin.test.assertContentEquals
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import bayern.kickner.knote.*
+import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.server.testing.*
+import kotlin.test.*
 
 class OidcTest {
 
@@ -44,6 +25,7 @@ class OidcTest {
 
         assertEquals(LoginDecision.Allowed("sub-1"), evaluateUserinfo("""{"sub": "sub-1", "name": "A"}""", allowed))
         assertEquals(LoginDecision.Denied("sub-2"), evaluateUserinfo("""{"sub": "sub-2"}""", allowed))
+        assertEquals(LoginDecision.Allowed("sub-2"), evaluateUserinfo("""{"sub": "sub-2"}""", emptyList()))
         listOf("""{"name": "A"}""", """{"sub": null}""", """{"sub": ""}""", """{"sub": {}}""", "not json", "[]").forEach { body ->
             assertEquals(LoginDecision.Failed("userinfo response has no sub"), evaluateUserinfo(body, allowed), body)
         }
@@ -56,6 +38,8 @@ class OidcTest {
         assertTrue(session.isValid(999, listOf("sub-1")))
         assertFalse(session.isValid(1000, listOf("sub-1")))
         assertFalse(session.isValid(999, listOf("sub-2")))
+        assertTrue(session.isValid(999, emptyList()))
+        assertFalse(session.isValid(1000, emptyList()))
     }
 
     @Test
@@ -152,6 +136,16 @@ class OidcTest {
         assertEquals(HttpStatusCode.Forbidden, response.status)
         assertContains(response.bodyAsText(), "Kein Zugriff")
         assertFalse(response.headers.getAll(HttpHeaders.SetCookie).orEmpty().any { it.startsWith("$ADMIN_COOKIE=") })
+    }
+
+    @Test
+    fun `without allowedSubjects every account of the provider is admin`() = testApplication {
+        val client =
+            knoteApp(config = testConfig(allowedSubjects = emptyList()), userinfoBody = """{"sub": "any-account"}""")
+
+        val cookie = client.login()
+
+        assertEquals(HttpStatusCode.OK, client.adminGet("/_admin", cookie).status)
     }
 
     @Test

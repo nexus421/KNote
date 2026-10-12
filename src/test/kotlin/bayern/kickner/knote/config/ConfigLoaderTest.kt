@@ -3,12 +3,7 @@ package bayern.kickner.knote.config
 import bayern.kickner.knote.cli.generateSessionKey
 import kotnexlib.ResultOf2
 import java.io.File
-import kotlin.test.Test
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertIs
-import kotlin.test.assertTrue
+import kotlin.test.*
 
 private const val KEY = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
 
@@ -31,7 +26,8 @@ internal fun configJson(
     userinfoUrl: String = "https://id.example.org/api/oidc/userinfo",
     clientId: String = "knote",
     clientSecret: String = "secret-value",
-    allowedSubjects: String = """["sub-1"]""",
+    // null leaves the field out
+    allowedSubjects: String? = """["sub-1"]""",
 ): String {
     val optional = listOfNotNull(
         listenHost?.let { "\"listenHost\": \"$it\"" },
@@ -55,8 +51,7 @@ internal fun configJson(
             "tokenUrl": "$tokenUrl",
             "userinfoUrl": "$userinfoUrl",
             "clientId": "$clientId",
-            "clientSecret": "$clientSecret",
-            "allowedSubjects": $allowedSubjects
+            "clientSecret": "$clientSecret"${allowedSubjects?.let { ",\n\"allowedSubjects\": $it" }.orEmpty()}
           }
         }
     """.trimIndent()
@@ -99,6 +94,16 @@ class ConfigLoaderTest {
     }
 
     @Test
+    fun `allowedSubjects is optional`() {
+        val missing = assertIs<ResultOf2.Success<AppConfig>>(load(configJson(allowedSubjects = null))).value
+        val empty = assertIs<ResultOf2.Success<AppConfig>>(load(configJson(allowedSubjects = "[]"))).value
+
+        assertEquals(emptyList(), missing.oidc.allowedSubjects)
+        assertEquals(emptyList(), empty.oidc.allowedSubjects)
+        assertTrue(configWarnings(missing).isEmpty())
+    }
+
+    @Test
     fun `a valid config has no warnings`() {
         val config = assertIs<ResultOf2.Success<AppConfig>>(load(configJson())).value
 
@@ -136,7 +141,8 @@ class ConfigLoaderTest {
             configJson(loginAttemptsPerMinute = 0) to "loginAttemptsPerMinute",
             configJson(cryptoParallelism = 0) to "cryptoParallelism",
             configJson(cryptoParallelism = 5) to "cryptoParallelism must be between 1 and 4",
-            configJson(minSheetPasswordLength = 7) to "minSheetPasswordLength",
+            configJson(minSheetPasswordLength = 0) to "minSheetPasswordLength",
+            configJson(minSheetPasswordLength = 1025) to "minSheetPasswordLength",
             configJson(maxSheetBytes = 1023) to "maxSheetBytes",
             configJson(maxSheetBytes = 10_485_761) to "maxSheetBytes",
             configJson(authorizeUrl = "http://id.example.org/authorize") to "oidc.authorizeUrl",
@@ -144,7 +150,6 @@ class ConfigLoaderTest {
             configJson(userinfoUrl = "/api/oidc/userinfo") to "oidc.userinfoUrl",
             configJson(clientId = " ") to "oidc.clientId must not be blank",
             configJson(clientSecret = "REPLACE_ME") to "oidc.clientSecret still holds the placeholder",
-            configJson(allowedSubjects = "[]") to "oidc.allowedSubjects must hold at least one sub",
             configJson(allowedSubjects = """["sub-1", " "]""") to "oidc.allowedSubjects must not contain blank entries",
         )
 
@@ -157,7 +162,7 @@ class ConfigLoaderTest {
             listenPort = 65535,
             sessionHours = 720,
             cryptoParallelism = 4,
-            minSheetPasswordLength = 8,
+            minSheetPasswordLength = 1,
             maxSheetBytes = 10_485_760,
             tokenUrl = "http://10.0.0.5:1411/api/oidc/token",
             userinfoUrl = "http://10.0.0.5:1411/api/oidc/userinfo",

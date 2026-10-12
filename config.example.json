@@ -16,7 +16,6 @@
     "tokenUrl": "https://id.example.org/api/oidc/token",
     "userinfoUrl": "https://id.example.org/api/oidc/userinfo",
     "clientId": "REPLACE_ME",
-    "clientSecret": "REPLACE_ME",
-    "allowedSubjects": ["REPLACE_ME"]
+    "clientSecret": "REPLACE_ME"
   }
 }

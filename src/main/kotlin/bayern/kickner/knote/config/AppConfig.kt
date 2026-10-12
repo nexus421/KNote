@@ -51,7 +51,8 @@ data class AppConfig(
  * @property userinfoUrl Userinfo endpoint, called by KNote itself. May be an internal `http://` address.
  * @property clientId Client ID from the provider.
  * @property clientSecret Client secret from the provider. Never logged.
- * @property allowedSubjects `sub` values of the accounts that are admins.
+ * @property allowedSubjects Optional filter. Empty: every account the provider lets through is admin, access is
+ * managed at the provider (e.g. a group restriction on the client). Otherwise only these `sub` values.
  */
 @Serializable
 data class OidcConfig(
@@ -60,7 +61,7 @@ data class OidcConfig(
     val userinfoUrl: String,
     val clientId: String,
     val clientSecret: String,
-    val allowedSubjects: List<String>,
+    val allowedSubjects: List<String> = emptyList(),
 ) {
     override fun toString() =
         "OidcConfig(authorizeUrl='$authorizeUrl', tokenUrl='$tokenUrl', userinfoUrl='$userinfoUrl', clientId='$clientId', " +

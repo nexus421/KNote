@@ -42,12 +42,12 @@ fun loadConfig(path: String, cpuCount: Int = Runtime.getRuntime().availableProce
 }
 
 /**
- * Problems that do not stop KNote but deserve a line in the log. A placeholder in `allowedSubjects` is allowed on
- * purpose: it is how the own `sub` is found on first setup (the denied login logs it).
+ * Problems that do not stop KNote but deserve a line in the log: a placeholder left in `allowedSubjects` locks
+ * every account out.
  */
 fun configWarnings(config: AppConfig): List<String> {
     val placeholderSubject = config.oidc.allowedSubjects.any { it.startsWith(PLACEHOLDER_PREFIX) }
-    return if (placeholderSubject) listOf("oidc.allowedSubjects still holds a placeholder. Log in once and copy the sub from the 'Login denied' line.")
+    return if (placeholderSubject) listOf("oidc.allowedSubjects holds a placeholder, nobody can log in. Remove the field to allow every account of the OIDC provider.")
     else emptyList()
 }
 
@@ -72,8 +72,9 @@ private fun validate(config: AppConfig, cpuCount: Int): List<String> {
     if (config.unlockAttemptsPerMinute < 1) issues += "unlockAttemptsPerMinute must be at least 1"
     if (config.loginAttemptsPerMinute < 1) issues += "loginAttemptsPerMinute must be at least 1"
     if (config.cryptoParallelism !in 1..cpuCount) issues += "cryptoParallelism must be between 1 and $cpuCount (the number of CPUs)"
-    if (config.minSheetPasswordLength !in 8..MAX_SHEET_PASSWORD_LENGTH)
-        issues += "minSheetPasswordLength must be between 8 and $MAX_SHEET_PASSWORD_LENGTH"
+    // At least 1: on a new sheet, empty password fields mean "no password"
+    if (config.minSheetPasswordLength !in 1..MAX_SHEET_PASSWORD_LENGTH)
+        issues += "minSheetPasswordLength must be between 1 and $MAX_SHEET_PASSWORD_LENGTH"
     if (config.maxSheetBytes !in 1024..10_485_760) issues += "maxSheetBytes must be between 1024 and 10485760"
 
     val oidc = config.oidc
@@ -82,7 +83,6 @@ private fun validate(config: AppConfig, cpuCount: Int): List<String> {
     if (oidc.userinfoUrl.isUrl(plainHttp = true).not()) issues += "oidc.userinfoUrl must start with https:// or http://"
     issues += requiredValue("oidc.clientId", oidc.clientId)
     issues += requiredValue("oidc.clientSecret", oidc.clientSecret)
-    if (oidc.allowedSubjects.isEmpty()) issues += "oidc.allowedSubjects must hold at least one sub"
     if (oidc.allowedSubjects.any { it.isBlank() }) issues += "oidc.allowedSubjects must not contain blank entries"
 
     return issues

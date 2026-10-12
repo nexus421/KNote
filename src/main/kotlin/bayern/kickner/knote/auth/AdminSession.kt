@@ -3,14 +3,10 @@ package bayern.kickner.knote.auth
 import bayern.kickner.knote.config.AppConfig
 import bayern.kickner.knote.web.PageLink
 import bayern.kickner.knote.web.respondMessage
-import io.ktor.http.HttpMethod
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.auth.AuthenticationConfig
-import io.ktor.server.auth.session
-import io.ktor.server.response.respondRedirect
-import io.ktor.server.sessions.SessionTransportTransformerMessageAuthentication
-import io.ktor.server.sessions.SessionsConfig
-import io.ktor.server.sessions.cookie
+import io.ktor.http.*
+import io.ktor.server.auth.*
+import io.ktor.server.response.*
+import io.ktor.server.sessions.*
 import kotlinx.serialization.Serializable
 
 /** Name of the admin login cookie. */
@@ -28,9 +24,15 @@ const val ADMIN_AUTH = "admin"
  */
 @Serializable
 data class AdminSession(val sub: String, val expiresAt: Long) {
-    /** True while the login has not expired and [sub] is still configured as admin. */
-    fun isValid(now: Long, allowedSubjects: List<String>): Boolean = expiresAt > now && sub in allowedSubjects
+    /** True while the login has not expired and [sub] is still an admin (see [isAdmin]). */
+    fun isValid(now: Long, allowedSubjects: List<String>): Boolean = expiresAt > now && isAdmin(sub, allowedSubjects)
 }
+
+/**
+ * True if [sub] may use the admin area. With empty [allowedSubjects] that is every account the OIDC provider lets
+ * through, so access is managed at the provider alone. Otherwise only the listed accounts.
+ */
+fun isAdmin(sub: String, allowedSubjects: List<String>): Boolean = allowedSubjects.isEmpty() || sub in allowedSubjects
 
 /**
  * Registers the admin cookie: HttpOnly, Secure and `SameSite=Lax`, signed with HMAC-SHA256. Ktor does not check
