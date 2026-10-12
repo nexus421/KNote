@@ -41,3 +41,8 @@ Tests: `./gradlew test`, also run on every push.
 * [Configuration and command line](docs/configuration.md)
 * [Deployment](docs/deployment.md): systemd, reverse proxy, OIDC client, first login
 * [How it works](docs/how-it-works.md): endpoints, encryption, login, security
+
+## Note on AI
+
+KNote was written with the help of an AI coding assistant (Claude). Concept and review by the author. The code is
+covered by automated tests, but has not had an independent security audit.
