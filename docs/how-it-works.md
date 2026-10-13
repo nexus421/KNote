@@ -10,7 +10,7 @@
 | GET    | `/_auth/login`             | everyone | `login`    | `302` to the OIDC provider, sets the state cookie.                             |
 | GET    | `/_auth/callback`          | everyone | `login`    | `302` to `/_admin` with the admin cookie, or `403`/`502` with a message.       |
 | POST   | `/_auth/logout`            | everyone |            | Deletes the admin cookie, `303` to `/`.                                        |
-| GET    | `/_admin`                  | admin    |            | Overview of all sheets, sorted by path. `?q=` filters by path and title.      |
+| GET    | `/_admin`                  | admin    |            | Overview, `?q=` filters by path and title, `?sort=title` or `changed` sorts.   |
 | GET    | `/_admin/new`              | admin    |            | Form for a new sheet.                                                          |
 | POST   | `/_admin/new`              | admin    |            | Creates the sheet, `303` to `/_admin`. `400` with the form on invalid input. With `action=preview`: the form again with the preview. |
 | GET    | `/_admin/edit/{id}`        | admin    |            | Editor, or the password form for a protected sheet.                            |

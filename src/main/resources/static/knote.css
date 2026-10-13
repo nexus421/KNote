@@ -454,6 +454,15 @@ th {
     text-transform: uppercase;
 }
 
+th a {
+    color: inherit;
+    text-decoration: none;
+}
+
+th a:hover, th a.sorted {
+    color: var(--accent);
+}
+
 tbody tr:hover td {
     background: var(--hover);
 }

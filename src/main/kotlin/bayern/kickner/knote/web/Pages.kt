@@ -10,6 +10,7 @@ import bayern.kickner.knote.storage.MAX_PATH_LENGTH
 import bayern.kickner.knote.storage.Sheet
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.encodeURLParameter
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.html.respondHtml
 import io.ktor.server.response.header
@@ -223,14 +224,37 @@ fun MAIN.unlockForm(t: Texts, heading: String, hint: String, action: String, err
 }
 
 /**
- * The admin overview: the sheets sorted by path, with links to edit and delete, and a search form. The search is a
- * plain GET form, the server filters.
+ * Sort orders of the overview, chosen with the query parameter `sort`.
  *
- * @param sheets The sheets that match [query], all of them for an empty [query].
+ * @property param Value of `sort`.
+ */
+enum class SheetOrder(val param: String) {
+    PATH("path"),
+    TITLE("title"),
+    CHANGED("changed");
+
+    /** [sheets] in this order. Path and title ascending, changed with the newest first. */
+    fun sort(sheets: List<Sheet>): List<Sheet> = when (this) {
+        PATH -> sheets.sortedBy { it.path }
+        TITLE -> sheets.sortedBy { it.title.lowercase() }
+        CHANGED -> sheets.sortedByDescending { it.updated }
+    }
+
+    companion object {
+        /** The order for [param], [PATH] for anything unknown. */
+        fun fromParam(param: String?): SheetOrder = entries.firstOrNull { it.param == param } ?: PATH
+    }
+}
+
+/**
+ * The admin overview: the sheets with links to edit and delete, a search form and sortable columns. Search and
+ * sorting are plain GET links and forms, the server filters and sorts.
+ *
+ * @param sheets The sheets that match [query] in [order], all of them for an empty [query].
  * @param adminName Display name of the logged in admin, empty hides "logged in as".
  * @param formatTime Formats [Sheet.updated] for display.
  */
-fun MAIN.overview(t: Texts, sheets: List<Sheet>, query: String, adminName: String, formatTime: (Long) -> String) {
+fun MAIN.overview(t: Texts, sheets: List<Sheet>, query: String, order: SheetOrder, adminName: String, formatTime: (Long) -> String) {
     div(classes = "bar") {
         h1 { +t.sheets }
         if (adminName.isNotBlank()) span(classes = "muted who") { +t.loggedInAs(adminName) }
@@ -243,24 +267,44 @@ fun MAIN.overview(t: Texts, sheets: List<Sheet>, query: String, adminName: Strin
             placeholder = t.searchPlaceholder
             attributes["aria-label"] = t.search
         }
+        if (order != SheetOrder.PATH) hiddenInput(name = "sort") { value = order.param }
         button(type = ButtonType.submit, classes = "secondary") { +t.search }
-        if (query.isNotEmpty()) a(href = ADMIN_PATH) { +t.showAll }
+        if (query.isNotEmpty()) a(href = overviewHref(order, query = "")) { +t.showAll }
     }
     if (sheets.isEmpty()) {
         p { +if (query.isEmpty()) t.noSheetsYet else t.noMatches }
         return
     }
-    div(classes = "table-wrap") { sheetTable(t, sheets, formatTime) }
+    div(classes = "table-wrap") { sheetTable(t, sheets, query, order, formatTime) }
 }
 
-private fun FlowContent.sheetTable(t: Texts, sheets: List<Sheet>, formatTime: (Long) -> String) {
+/** The overview URL with [order] and [query], leaving out what is default. */
+private fun overviewHref(order: SheetOrder, query: String): String {
+    val parameters = listOfNotNull(
+        "sort=${order.param}".takeIf { order != SheetOrder.PATH },
+        "q=${query.encodeURLParameter()}".takeIf { query.isNotEmpty() },
+    )
+    return if (parameters.isEmpty()) ADMIN_PATH else "$ADMIN_PATH?" + parameters.joinToString("&")
+}
+
+/** A column header that sorts by [column], marked with an arrow while it is the current [order]. */
+private fun TR.sortHeader(label: String, column: SheetOrder, order: SheetOrder, query: String) {
+    th {
+        a(href = overviewHref(column, query), classes = if (column == order) "sorted" else null) {
+            +label
+            if (column == order) +if (column == SheetOrder.CHANGED) " ▼" else " ▲"
+        }
+    }
+}
+
+private fun FlowContent.sheetTable(t: Texts, sheets: List<Sheet>, query: String, order: SheetOrder, formatTime: (Long) -> String) {
     table {
         thead {
             tr {
-                th { +t.columnPath }
-                th { +t.columnTitle }
+                sortHeader(t.columnPath, SheetOrder.PATH, order, query)
+                sortHeader(t.columnTitle, SheetOrder.TITLE, order, query)
                 th { +t.columnProtection }
-                th { +t.columnChanged }
+                sortHeader(t.columnChanged, SheetOrder.CHANGED, order, query)
                 th { +t.columnActions }
             }
         }

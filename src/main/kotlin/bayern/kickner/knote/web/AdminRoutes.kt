@@ -60,8 +60,10 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, unlockProof: UnlockPr
         authenticate(ADMIN_AUTH) {
             get {
                 val query = call.request.queryParameters["q"].orEmpty().trim()
-                val sheets = store.all.filter { it.matches(query) }
-                call.respondPage(title = call.texts.sheets) { overview(call.texts, sheets, query, call.principal<AdminSession>()?.name.orEmpty()) { formatTime(it, zone) } }
+                val order = SheetOrder.fromParam(call.request.queryParameters["sort"])
+                val sheets = order.sort(store.all.filter { it.matches(query) })
+                val adminName = call.principal<AdminSession>()?.name.orEmpty()
+                call.respondPage(title = call.texts.sheets) { overview(call.texts, sheets, query, order, adminName) { formatTime(it, zone) } }
             }
 
             get("/new") {

@@ -122,6 +122,24 @@ class AdminRoutesTest {
     }
 
     @Test
+    fun `the overview sorts by path, title or last change`() = testApplication {
+        val admin = admin(
+            plainSheet("b-pfad", title = "Alpha Beta", updated = FIXED_NOW - 1000),
+            plainSheet("a-pfad", title = "Charlie", updated = FIXED_NOW),
+            plainSheet("c-pfad", title = "bravo", updated = FIXED_NOW - 5000),
+        )
+        fun order(body: String) = Regex("<td><a href=\"/([a-z-]+)\"").findAll(body).map { it.groupValues[1] }.toList()
+
+        assertEquals(listOf("a-pfad", "b-pfad", "c-pfad"), order(admin.get("/_admin").bodyAsText()))
+        assertEquals(listOf("b-pfad", "c-pfad", "a-pfad"), order(admin.get("/_admin?sort=title").bodyAsText()))
+        assertEquals(listOf("a-pfad", "b-pfad", "c-pfad"), order(admin.get("/_admin?sort=changed").bodyAsText()))
+        val sortedSearch = admin.get("/_admin?sort=title&q=ha%20b").bodyAsText()
+        assertEquals(listOf("b-pfad"), order(sortedSearch))
+        assertContains(sortedSearch, "name=\"sort\" value=\"title\"")
+        assertContains(sortedSearch, "href=\"/_admin?sort=changed&amp;q=ha%20b\"")
+    }
+
+    @Test
     fun `the search filters by path and title ignoring case`() = testApplication {
         val admin = admin(plainSheet("einkauf", title = "Wochenmarkt"), plainSheet("projekte/knote", title = "KNote"))
 
