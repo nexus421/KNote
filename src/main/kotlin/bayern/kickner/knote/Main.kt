@@ -17,6 +17,7 @@ import bayern.kickner.knote.crypto.UnlockProof
 import bayern.kickner.knote.i18n.Language
 import bayern.kickner.knote.i18n.TextsKey
 import bayern.kickner.knote.storage.SheetStore
+import bayern.kickner.knote.storage.openStore
 import bayern.kickner.knote.web.PoweredByKey
 import bayern.kickner.knote.web.SecurityHeaders
 import bayern.kickner.knote.web.UNLOCK_RATE_LIMIT
@@ -42,6 +43,7 @@ import io.ktor.server.sessions.Sessions
 import kotnexlib.ArgsInterpreter
 import kotnexlib.ResultOf2
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
 import java.time.ZoneId
@@ -91,7 +93,7 @@ internal val appVersion: String =
  * then serves until the process is stopped.
  *
  * `key` prints a fresh `sessionSignKey` and needs no config. `check` loads and validates config and sheets, then
- * exits. Exit codes: [EXIT_USAGE] for an unknown argument, [EXIT_CONFIG_ERROR] for a rejected config,
+ * exits without changing anything. On the first start the sheet directory is created with an example sheet. Exit codes: [EXIT_USAGE] for an unknown argument, [EXIT_CONFIG_ERROR] for a rejected config,
  * [EXIT_DATA_ERROR] for broken sheet files, [EXIT_START_FAILED] if the server cannot start.
  */
 fun main(args: Array<String>) {
@@ -127,7 +129,12 @@ fun main(args: Array<String>) {
     configWarnings(config).forEach { warning -> staticLog(KLogger.Level.WARN, TAG) { warning } }
 
     val sheetDir = Path.of(config.dataDir, "sheets").toAbsolutePath()
-    val store = when (val result = SheetStore.load(sheetDir)) {
+    // `check` changes nothing on disk, the first real start creates the directory and the example sheet
+    if (args.contains("check") && Files.notExists(sheetDir)) {
+        staticLog(KLogger.Level.INFO, TAG) { "Config file ${File(configPath).absolutePath} is valid. $sheetDir does not exist yet, the first start creates it with an example sheet" }
+        return
+    }
+    val store = when (val result = openStore(sheetDir)) {
         is ResultOf2.Success -> result.value
         is ResultOf2.Failure -> {
             staticLog(KLogger.Level.ERROR, TAG) { "Sheet files in $sheetDir are broken, fix or move them:\n" + result.value.joinToString("\n") { "  $it" } }

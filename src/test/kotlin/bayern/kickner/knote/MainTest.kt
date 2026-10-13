@@ -83,6 +83,17 @@ class MainTest {
     }
 
     @Test
+    fun `check on a fresh install changes nothing on disk`() {
+        val directory = directoryWithConfig()
+
+        val run = knote("check", workingDirectory = directory)
+
+        assertEquals(0, run.exitCode, run.stderr)
+        assertContains(run.stdout, "the first start creates it with an example sheet")
+        assertTrue(File(directory, "data").exists().not())
+    }
+
+    @Test
     fun `broken sheet files exit with 65 and list every problem`() {
         val directory = directoryWithConfig()
         val sheets = File(directory, "data/sheets").apply { mkdirs() }

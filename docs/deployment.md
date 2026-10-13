@@ -55,6 +55,9 @@ Adjust the Java path in `knote.service` to your installation. systemd restarts K
 code 1), at most 5 times in 5 minutes, but not after exit codes 64, 65 or 78 (see
 [configuration.md](configuration.md)).
 
+On the first start KNote creates the sheet directory with an example sheet at `/example`. Delete it in the admin
+area when you no longer need it, it does not come back. `check` changes nothing on disk.
+
 ## 5. Who may log in
 
 Every account that completes the login at the OIDC provider is admin. Manage access there: in Pocket ID, restrict

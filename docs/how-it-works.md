@@ -36,7 +36,8 @@ One JSON file per sheet in `<dataDir>/sheets`, named after the random id of the 
 the file, so no URL ever becomes a file name. All sheets are kept in memory and found only through that map. A
 change is written to a temp file in the same directory and moved over the old file atomically, and only then
 applied in memory. At startup every file is checked: unknown keys, a file name that does not match the id, an
-invalid path and a path used twice are errors (exit code 65). Leftover `*.tmp` files are ignored.
+invalid path and a path used twice are errors (exit code 65). Leftover `*.tmp` files are ignored. If the directory
+does not exist yet, the first start creates it with an English example sheet at `/example`.
 
 ## Protected sheets
 

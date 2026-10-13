@@ -36,7 +36,8 @@ Fill in `config.json` before the check: your public URL, the session key, the OI
 reverse proxy. Register KNote at your OIDC provider with the callback `<public URL>/_auth/callback`. Every account
 that logs in there is admin, so limit the client to a user group
 (see [Deployment](docs/deployment.md#5-who-may-log-in)).
-For a local try without TLS, `http://localhost:8080` works as public URL.
+For a local try without TLS, `http://localhost:8080` works as public URL. On its first start KNote creates an
+example sheet at `/example`.
 
 Tests: `./gradlew test`, also run on every push.
 
