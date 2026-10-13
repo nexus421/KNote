@@ -180,7 +180,7 @@ main.start {
 main.start::before {
     background: linear-gradient(90deg, #22d3ee, #f43f5e, #facc15, #22c55e, #22d3ee) 0 0 / 50% 100% repeat-x;
     box-shadow: 0 0 14px rgba(56, 214, 236, 0.35);
-    animation: light-run 5s linear infinite;
+    animation: light-run 1.6s linear infinite;
 }
 
 @keyframes light-run {
