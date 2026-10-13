@@ -189,6 +189,24 @@ main.start::before {
     }
 }
 
+/* Every other page gets a single shine across the light bar when it loads, then it rests */
+main:not(.start)::before {
+    background:
+        linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85), transparent) -50% 0 / 30% 100% no-repeat,
+        var(--neon);
+    animation: light-shine 1.4s ease-out 0.2s both;
+}
+
+@keyframes light-shine {
+    from {
+        background-position: -50% 0, 0 0;
+    }
+
+    to {
+        background-position: 150% 0, 0 0;
+    }
+}
+
 h1 {
     margin: 0 0 1rem;
     font-size: 1.75rem;
@@ -657,7 +675,7 @@ button.link:hover {
         transition: none !important;
     }
 
-    body::after, main.start::before {
-        animation: none;
+    body::after, main::before {
+        animation: none !important;
     }
 }
