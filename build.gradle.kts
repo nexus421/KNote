@@ -34,6 +34,7 @@ dependencies {
     implementation("org.commonmark:commonmark-ext-gfm-tables:0.30.1")
     implementation("org.commonmark:commonmark-ext-gfm-strikethrough:0.30.1")
     implementation("org.commonmark:commonmark-ext-task-list-items:0.30.1")
+    implementation("org.commonmark:commonmark-ext-autolink:0.30.1")
 
     testImplementation(kotlin("test"))
     testImplementation("io.ktor:ktor-server-test-host")

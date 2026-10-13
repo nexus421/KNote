@@ -77,6 +77,20 @@ class MarkdownRendererTest {
     }
 
     @Test
+    fun `plain addresses become links`() {
+        assertContains(renderMarkdown("see https://example.org/a?b=c"), "href=\"https://example.org/a?b=c\">https://example.org/a?b=c</a>")
+        assertContains(renderMarkdown("see www.example.org"), "href=\"http://www.example.org\">www.example.org</a>")
+        assertContains(renderMarkdown("mail a@example.org"), "href=\"mailto:a@example.org\">a@example.org</a>")
+    }
+
+    @Test
+    fun `autolinks do not create script links`() {
+        val html = renderMarkdown("javascript:alert(1) and data:text/html;base64,PHNjcmlwdD4=")
+
+        assertFalse(html.contains("<a"), html)
+    }
+
+    @Test
     fun `unicode is kept`() {
         assertTrue(renderMarkdown("# Überschrift Ä ß 😀").contains("Überschrift Ä ß 😀"))
     }
