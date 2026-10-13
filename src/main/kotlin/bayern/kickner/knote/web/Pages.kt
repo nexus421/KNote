@@ -2,6 +2,8 @@ package bayern.kickner.knote.web
 
 import bayern.kickner.knote.auth.LOGIN_PATH
 import bayern.kickner.knote.auth.LOGOUT_PATH
+import bayern.kickner.knote.i18n.Texts
+import bayern.kickner.knote.i18n.texts
 import bayern.kickner.knote.storage.MAX_PATH_LENGTH
 import bayern.kickner.knote.storage.Sheet
 import io.ktor.http.HttpHeaders
@@ -61,12 +63,12 @@ data class EditorValues(
 )
 
 /**
- * Responds with a complete page: shared head, stylesheet and [content] inside `<main>`. The language is German
- * like all texts on the pages. kotlinx.html escapes every text, [markdownArticle] is the only place with raw HTML.
+ * Responds with a complete page: shared head, stylesheet and [content] inside `<main>`, in the configured language.
+ * kotlinx.html escapes every text, [markdownArticle] is the only place with raw HTML.
  */
 suspend fun ApplicationCall.respondPage(status: HttpStatusCode = HttpStatusCode.OK, title: String, content: MAIN.() -> Unit) =
     respondHtml(status) {
-        lang = "de"
+        lang = texts.htmlLang
         head {
             meta(charset = "utf-8")
             meta(name = "viewport", content = "width=device-width, initial-scale=1")
@@ -94,13 +96,13 @@ suspend fun ApplicationCall.respondSeeOther(location: String) {
 
 /** The 404 page. Unknown and invalid paths look the same. */
 suspend fun ApplicationCall.respondNotFound() =
-    respondMessage(HttpStatusCode.NotFound, "Nicht gefunden", "Unter dieser Adresse gibt es kein Blatt.")
+    respondMessage(HttpStatusCode.NotFound, texts.notFoundHeading, texts.notFoundText)
 
 /** Start page for visitors without admin login. */
-fun MAIN.landing() {
+fun MAIN.landing(t: Texts) {
     h1 { +"KNote" }
-    p { +"Blätter sind direkt über ihre Adresse erreichbar. Die Verwaltung braucht eine Anmeldung." }
-    p { a(href = LOGIN_PATH, classes = "button") { +"Anmelden" } }
+    p { +t.landingText }
+    p { a(href = LOGIN_PATH, classes = "button") { +t.logIn } }
 }
 
 /** A rendered sheet. [html] must come from `renderMarkdown`. */
@@ -119,14 +121,14 @@ private fun FlowContent.markdownArticle(html: String) {
  *
  * @param error Shown above the field, e.g. after a wrong password.
  */
-fun MAIN.unlockForm(heading: String, hint: String, action: String, error: String? = null) {
+fun MAIN.unlockForm(t: Texts, heading: String, hint: String, action: String, error: String? = null) {
     h1 { +heading }
     p { +hint }
     if (error != null) p(classes = "error") { +error }
     form(action = action, method = FormMethod.post) {
         label {
             htmlFor = "password"
-            +"Passwort"
+            +t.password
         }
         passwordInput(name = "password") {
             id = "password"
@@ -134,7 +136,7 @@ fun MAIN.unlockForm(heading: String, hint: String, action: String, error: String
             autoFocus = true
             autoComplete = "current-password"
         }
-        div(classes = "actions") { submitInput { value = "Entsperren" } }
+        div(classes = "actions") { submitInput { value = t.unlock } }
     }
 }
 
@@ -143,24 +145,24 @@ fun MAIN.unlockForm(heading: String, hint: String, action: String, error: String
  *
  * @param formatTime Formats [Sheet.updated] for display.
  */
-fun MAIN.overview(sheets: List<Sheet>, formatTime: (Long) -> String) {
+fun MAIN.overview(t: Texts, sheets: List<Sheet>, formatTime: (Long) -> String) {
     div(classes = "bar") {
-        h1 { +"Blätter" }
-        a(href = "$ADMIN_PATH/new", classes = "button") { +"Neues Blatt" }
-        form(action = LOGOUT_PATH, method = FormMethod.post) { submitInput(classes = "secondary") { value = "Abmelden" } }
+        h1 { +t.sheets }
+        a(href = "$ADMIN_PATH/new", classes = "button") { +t.newSheet }
+        form(action = LOGOUT_PATH, method = FormMethod.post) { submitInput(classes = "secondary") { value = t.logOut } }
     }
     if (sheets.isEmpty()) {
-        p { +"Noch keine Blätter." }
+        p { +t.noSheetsYet }
         return
     }
     table {
         thead {
             tr {
-                th { +"Pfad" }
-                th { +"Titel" }
-                th { +"Schutz" }
-                th { +"Geändert" }
-                th { +"Aktionen" }
+                th { +t.columnPath }
+                th { +t.columnTitle }
+                th { +t.columnProtection }
+                th { +t.columnChanged }
+                th { +t.columnActions }
             }
         }
         tbody {
@@ -168,11 +170,11 @@ fun MAIN.overview(sheets: List<Sheet>, formatTime: (Long) -> String) {
                 tr {
                     td { a(href = "/${sheet.path}") { +sheet.path } }
                     td { +sheet.title }
-                    td { if (sheet.isProtected) +"geschützt" }
+                    td { if (sheet.isProtected) +t.protectedMarker }
                     td { +formatTime(sheet.updated) }
                     td(classes = "actions") {
-                        a(href = "$ADMIN_PATH/edit/${sheet.id}") { +"Bearbeiten" }
-                        a(href = "$ADMIN_PATH/delete/${sheet.id}") { +"Löschen" }
+                        a(href = "$ADMIN_PATH/edit/${sheet.id}") { +t.edit }
+                        a(href = "$ADMIN_PATH/delete/${sheet.id}") { +t.delete }
                     }
                 }
             }
@@ -190,15 +192,15 @@ fun MAIN.overview(sheets: List<Sheet>, formatTime: (Long) -> String) {
  * @param minPasswordLength Shown as hint and set as `minlength` on the password fields.
  * @param preview Rendered Markdown from `renderMarkdown`, shown above the form. Null shows no preview.
  */
-fun MAIN.editor(target: EditorTarget, values: EditorValues, errors: List<String>, minPasswordLength: Int, preview: String? = null) {
+fun MAIN.editor(t: Texts, target: EditorTarget, values: EditorValues, errors: List<String>, minPasswordLength: Int, preview: String? = null) {
     val action = when (target) {
         EditorTarget.New -> "$ADMIN_PATH/new"
         is EditorTarget.Existing -> "$ADMIN_PATH/edit/${target.id}"
     }
-    h1 { +if (target == EditorTarget.New) "Neues Blatt" else "Blatt bearbeiten" }
+    h1 { +if (target == EditorTarget.New) t.newSheet else t.editSheet }
     if (errors.isNotEmpty()) ul(classes = "error") { errors.forEach { li { +it } } }
     if (preview != null) section(classes = "preview") {
-        h2 { +"Vorschau (nicht gespeichert)" }
+        h2 { +t.previewHeading }
         markdownArticle(preview)
     }
 
@@ -209,7 +211,7 @@ fun MAIN.editor(target: EditorTarget, values: EditorValues, errors: List<String>
         }
         label {
             htmlFor = "path"
-            +"Pfad"
+            +t.path
         }
         textInput(name = "path") {
             id = "path"
@@ -218,10 +220,10 @@ fun MAIN.editor(target: EditorTarget, values: EditorValues, errors: List<String>
             pattern = PATH_PATTERN
             value = values.path
         }
-        p(classes = "hint") { +"Kleinbuchstaben a bis z, Ziffern und Bindestrich, Abschnitte durch / getrennt." }
+        p(classes = "hint") { +t.pathHint }
         label {
             htmlFor = "title"
-            +"Titel"
+            +t.title
         }
         textInput(name = "title") {
             id = "title"
@@ -231,7 +233,7 @@ fun MAIN.editor(target: EditorTarget, values: EditorValues, errors: List<String>
         }
         label {
             htmlFor = "markdown"
-            +"Inhalt (Markdown)"
+            +t.content
         }
         textArea(rows = "20") {
             id = "markdown"
@@ -239,21 +241,21 @@ fun MAIN.editor(target: EditorTarget, values: EditorValues, errors: List<String>
             // The HTML parser drops one line break right after <textarea>, this one keeps a leading line break of the content
             +"\n${values.markdown}"
         }
-        protectionFields(target, values, minPasswordLength)
+        protectionFields(t, target, values, minPasswordLength)
         div(classes = "actions") {
-            submitInput { value = if (target == EditorTarget.New) "Anlegen" else "Speichern" }
+            submitInput { value = if (target == EditorTarget.New) t.create else t.save }
             button(type = ButtonType.submit, name = ACTION_FIELD, classes = "secondary") {
                 value = PREVIEW_ACTION
-                +"Vorschau"
+                +t.preview
             }
-            a(href = ADMIN_PATH) { +"Abbrechen" }
+            a(href = ADMIN_PATH) { +t.cancel }
         }
     }
 }
 
-private fun FORM.protectionFields(target: EditorTarget, values: EditorValues, minPasswordLength: Int) {
+private fun FORM.protectionFields(t: Texts, target: EditorTarget, values: EditorValues, minPasswordLength: Int) {
     fieldSet {
-        legend { +"Schutz" }
+        legend { +t.protection }
         val choices = when {
             target !is EditorTarget.Existing -> emptyList()
             target.currentPassword != null -> ProtectionChoice.forProtected
@@ -265,14 +267,14 @@ private fun FORM.protectionFields(target: EditorTarget, values: EditorValues, mi
                     value = choice.formValue
                     checked = if (values.protection == null) index == 0 else values.protection == choice
                 }
-                +" ${choice.label}"
+                +" ${t.protectionChoice(choice)}"
             }
         }
-        val hint = if (target == EditorTarget.New) "Beide Felder leer lassen für ein ungeschütztes Blatt. " else ""
-        p(classes = "hint") { +"${hint}Mindestens $minPasswordLength Zeichen. Ohne Passwort ist der Inhalt verloren." }
+        val hint = if (target == EditorTarget.New) "${t.newSheetPasswordHint} " else ""
+        p(classes = "hint") { +"$hint${t.passwordHint(minPasswordLength)}" }
         label {
             htmlFor = "password"
-            +"Passwort"
+            +t.password
         }
         passwordInput(name = "password") {
             id = "password"
@@ -282,7 +284,7 @@ private fun FORM.protectionFields(target: EditorTarget, values: EditorValues, mi
         }
         label {
             htmlFor = "passwordRepeat"
-            +"Passwort wiederholen"
+            +t.passwordRepeat
         }
         passwordInput(name = "passwordRepeat") {
             id = "passwordRepeat"
@@ -294,18 +296,18 @@ private fun FORM.protectionFields(target: EditorTarget, values: EditorValues, mi
 }
 
 /** Asks before [sheet] is deleted. The deletion itself is a POST, never a GET. */
-fun MAIN.deleteConfirm(sheet: Sheet) {
-    h1 { +"Blatt löschen" }
+fun MAIN.deleteConfirm(t: Texts, sheet: Sheet) {
+    h1 { +t.deleteSheet }
     p {
-        +"Blatt "
+        +t.deleteQuestionStart
         code { +sheet.path }
-        +" (${sheet.title}) wirklich löschen?"
+        +t.deleteQuestionEnd(sheet.title)
     }
-    if (sheet.isProtected) p { +"Das Blatt ist geschützt. Nach dem Löschen ist der Inhalt endgültig verloren." }
+    if (sheet.isProtected) p { +t.deleteProtectedWarning }
     form(action = "$ADMIN_PATH/delete/${sheet.id}", method = FormMethod.post) {
         div(classes = "actions") {
-            submitInput(classes = "danger") { value = "Löschen" }
-            a(href = ADMIN_PATH) { +"Abbrechen" }
+            submitInput(classes = "danger") { value = t.delete }
+            a(href = ADMIN_PATH) { +t.cancel }
         }
     }
 }

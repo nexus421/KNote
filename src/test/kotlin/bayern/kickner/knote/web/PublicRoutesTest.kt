@@ -44,7 +44,7 @@ class PublicRoutesTest {
         listOf("/gibt-es-nicht", "/Einkauf", "/einkauf/", "/_nope", "/a/../einkauf", "/einkauf.json").forEach { path ->
             val response = client.get(path)
             assertEquals(HttpStatusCode.NotFound, response.status, path)
-            assertContains(response.bodyAsText(), "Nicht gefunden")
+            assertContains(response.bodyAsText(), "Not found")
         }
     }
 
@@ -91,7 +91,7 @@ class PublicRoutesTest {
 
         assertEquals(HttpStatusCode.Forbidden, response.status)
         val body = response.bodyAsText()
-        assertContains(body, "Falsches Passwort")
+        assertContains(body, "Wrong password")
         assertFalse(body.contains("geheimer Inhalt"))
     }
 
@@ -137,6 +137,30 @@ class PublicRoutesTest {
         assertEquals(HttpStatusCode.Forbidden, client.unlock("privat/notiz", "wrong", forwardedFor = "198.51.100.1").status)
         assertEquals(HttpStatusCode.TooManyRequests, client.unlock("privat/notiz", "wrong", forwardedFor = "9.9.9.9, 198.51.100.1").status)
         assertEquals(HttpStatusCode.Forbidden, client.unlock("privat/notiz", "wrong", forwardedFor = "198.51.100.2").status)
+    }
+
+    @Test
+    fun `pages are english by default`() = testApplication {
+        val client = knoteApp(storeWithSheets())
+
+        val body = client.get("/privat/notiz").bodyAsText()
+
+        assertContains(body, "<html lang=\"en\">")
+        assertContains(body, "This sheet is protected with a password.")
+        assertContains(body, "value=\"Unlock\"")
+    }
+
+    @Test
+    fun `pages follow the configured language`() = testApplication {
+        val client = knoteApp(storeWithSheets(), testConfig(language = "de"))
+
+        val notFound = client.get("/gibt-es-nicht").bodyAsText()
+        val wrong = client.unlock("privat/notiz", "wrong-password").bodyAsText()
+
+        assertContains(notFound, "<html lang=\"de\">")
+        assertContains(notFound, "Nicht gefunden")
+        assertContains(wrong, "Falsches Passwort")
+        assertContains(wrong, "value=\"Entsperren\"")
     }
 
     @Test

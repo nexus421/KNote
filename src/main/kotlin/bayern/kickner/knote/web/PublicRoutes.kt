@@ -7,6 +7,7 @@ import bayern.kickner.knote.config.AppConfig
 import bayern.kickner.knote.crypto.CryptoGate
 import bayern.kickner.knote.crypto.UnlockError
 import bayern.kickner.knote.crypto.decryptContent
+import bayern.kickner.knote.i18n.texts
 import bayern.kickner.knote.markdown.renderMarkdown
 import bayern.kickner.knote.storage.Sheet
 import bayern.kickner.knote.storage.SheetContent
@@ -32,8 +33,6 @@ private const val TAG = "PublicRoutes"
 /** Rate limit of every password attempt, public and admin, keyed by client IP. */
 val UNLOCK_RATE_LIMIT = RateLimitName("unlock")
 
-private const val LOCKED_HINT = "Dieses Blatt ist mit einem Passwort geschützt."
-
 /**
  * `GET /`: an admin with a valid login goes straight to the overview, everyone else sees the start page with the
  * login button. The start page never redirects to the provider on its own, so a logout really ends at it.
@@ -44,7 +43,7 @@ fun Route.startPage(config: AppConfig, clock: () -> Long) {
     get("/") {
         val loggedIn = call.sessions.get<AdminSession>()?.isValid(clock(), config.oidc.allowedSubjects) == true
         if (loggedIn) call.respondRedirect(ADMIN_PATH)
-        else call.respondPage(title = "KNote") { landing() }
+        else call.respondPage(title = "KNote") { landing(call.texts) }
     }
 }
 
@@ -58,7 +57,7 @@ fun Route.sheetRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig) {
         val sheet = store.find(call.sheetPath()) ?: return@get call.respondNotFound()
         when (val content = sheet.content) {
             is SheetContent.Plain -> call.respondPage(title = sheet.title) { sheetView(sheet.title, renderMarkdown(content.markdown)) }
-            is SheetContent.Encrypted -> call.respondPage(title = sheet.title) { unlockForm(sheet.title, LOCKED_HINT, "/${sheet.path}") }
+            is SheetContent.Encrypted -> call.respondPage(title = sheet.title) { unlockForm(call.texts, sheet.title, call.texts.lockedHint, "/${sheet.path}") }
         }
     }
 
@@ -75,15 +74,12 @@ fun Route.sheetRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig) {
                 }
 
                 is ResultOf2.Failure -> call.respondUnlockFailure(sheet, result.value, config) {
-                    unlockForm(sheet.title, LOCKED_HINT, "/${sheet.path}", WRONG_PASSWORD)
+                    unlockForm(call.texts, sheet.title, call.texts.lockedHint, "/${sheet.path}", call.texts.wrongPassword)
                 }
             }
         }
     }
 }
-
-/** Shown after a wrong sheet password. */
-internal const val WRONG_PASSWORD = "Falsches Passwort"
 
 /**
  * Answers a failed unlock: 403 with [passwordForm] for a wrong password, 303 back to the sheet if it has no
@@ -101,7 +97,7 @@ internal suspend fun ApplicationCall.respondUnlockFailure(sheet: Sheet, error: U
 
         is UnlockError.Corrupt -> {
             staticLog(KLogger.Level.ERROR, TAG) { "Sheet id=${sheet.id} cannot be decrypted: ${error.reason}" }
-            respondMessage(HttpStatusCode.InternalServerError, "Blatt beschädigt", "Das Blatt kann nicht gelesen werden.")
+            respondMessage(HttpStatusCode.InternalServerError, texts.damagedHeading, texts.damagedText)
         }
     }
 }

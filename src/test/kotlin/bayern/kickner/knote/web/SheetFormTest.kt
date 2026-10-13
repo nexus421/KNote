@@ -1,5 +1,7 @@
 package bayern.kickner.knote.web
 
+import bayern.kickner.knote.i18n.EnglishTexts
+import bayern.kickner.knote.i18n.GermanTexts
 import io.ktor.http.parametersOf
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -11,6 +13,8 @@ private fun form(path: String = "einkauf", title: String = "Einkauf", markdown: 
     SheetForm(path, title, markdown, "", "", null, null, null)
 
 class SheetFormTest {
+
+    private val t = EnglishTexts
 
     @Test
     fun `fields are trimmed and line breaks normalized`() {
@@ -50,29 +54,34 @@ class SheetFormTest {
 
     @Test
     fun `valid fields have no issues`() {
-        assertTrue(validateFields(form(title = "a".repeat(100)), maxSheetBytes = 1024).isEmpty())
+        assertTrue(validateFields(t, form(title = "a".repeat(100)), maxSheetBytes = 1024).isEmpty())
     }
 
     @Test
     fun `each field rule has its own message`() {
-        assertEquals(1, validateFields(form(path = "Einkauf"), 1024).size)
-        assertEquals(listOf("Titel 1 bis 100 Zeichen"), validateFields(form(title = ""), 1024))
-        assertEquals(listOf("Titel 1 bis 100 Zeichen"), validateFields(form(title = "a".repeat(101)), 1024))
-        assertEquals(listOf("Titel darf keine Steuerzeichen enthalten"), validateFields(form(title = "a\u0007b"), 1024))
+        assertEquals(listOf(t.invalidPath(128)), validateFields(t, form(path = "Einkauf"), 1024))
+        assertEquals(listOf("Title 1 to 100 characters"), validateFields(t, form(title = ""), 1024))
+        assertEquals(listOf("Title 1 to 100 characters"), validateFields(t, form(title = "a".repeat(101)), 1024))
+        assertEquals(listOf("Title must not contain control characters"), validateFields(t, form(title = "a\u0007b"), 1024))
     }
 
     @Test
     fun `the markdown limit counts utf-8 bytes`() {
         // 512 characters, but 1024 bytes
-        assertTrue(validateFields(form(markdown = "ä".repeat(512)), 1024).isEmpty())
-        assertEquals(listOf("Inhalt zu groß (höchstens 1024 Bytes)"), validateFields(form(markdown = "ä".repeat(512) + "a"), 1024))
+        assertTrue(validateFields(t, form(markdown = "ä".repeat(512)), 1024).isEmpty())
+        assertEquals(listOf("Content too large (at most 1024 bytes)"), validateFields(t, form(markdown = "ä".repeat(512) + "a"), 1024))
     }
 
     @Test
     fun `password rules`() {
-        assertTrue(validateNewPassword("a".repeat(12), "a".repeat(12), 12).isEmpty())
-        assertEquals(listOf("Passwort mindestens 12 Zeichen"), validateNewPassword("a".repeat(11), "a".repeat(11), 12))
-        assertEquals(listOf("Passwort höchstens 1024 Zeichen"), validateNewPassword("a".repeat(1025), "a".repeat(1025), 12))
-        assertEquals(listOf("Passwörter stimmen nicht überein"), validateNewPassword("a".repeat(12), "b".repeat(12), 12))
+        assertTrue(validateNewPassword(t, "a".repeat(12), "a".repeat(12), 12).isEmpty())
+        assertEquals(listOf("Password at least 12 characters"), validateNewPassword(t, "a".repeat(11), "a".repeat(11), 12))
+        assertEquals(listOf("Password at most 1024 characters"), validateNewPassword(t, "a".repeat(1025), "a".repeat(1025), 12))
+        assertEquals(listOf("Passwords do not match"), validateNewPassword(t, "a".repeat(12), "b".repeat(12), 12))
+    }
+
+    @Test
+    fun `messages follow the language`() {
+        assertEquals(listOf("Passwort mindestens 12 Zeichen"), validateNewPassword(GermanTexts, "a", "a", 12))
     }
 }

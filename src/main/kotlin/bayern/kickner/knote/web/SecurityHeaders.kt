@@ -2,6 +2,7 @@ package bayern.kickner.knote.web
 
 import bayern.kickner.klogger.KLogger
 import bayern.kickner.klogger.staticLog
+import bayern.kickner.knote.i18n.texts
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.createApplicationPlugin
@@ -48,6 +49,6 @@ fun CSRFConfig.onlyFrom(publicBaseUrl: String) {
     allowOrigin(publicBaseUrl)
     onFailure {
         staticLog(KLogger.Level.WARN, TAG) { "Rejected cross site ${request.local.method.value} to ${request.local.uri.substringBefore('?')}" }
-        respondMessage(HttpStatusCode.Forbidden, "Abgelehnt", "Die Anfrage kam nicht von KNote selbst.")
+        respondMessage(HttpStatusCode.Forbidden, texts.crossSiteHeading, texts.crossSiteText)
     }
 }

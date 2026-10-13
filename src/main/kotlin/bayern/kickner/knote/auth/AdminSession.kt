@@ -1,6 +1,7 @@
 package bayern.kickner.knote.auth
 
 import bayern.kickner.knote.config.AppConfig
+import bayern.kickner.knote.i18n.texts
 import bayern.kickner.knote.web.PageLink
 import bayern.kickner.knote.web.respondMessage
 import io.ktor.http.*
@@ -64,9 +65,9 @@ fun AuthenticationConfig.adminSession(config: AppConfig, clock: () -> Long) {
             if (call.request.local.method == HttpMethod.Get) call.respondRedirect(LOGIN_PATH)
             else call.respondMessage(
                 HttpStatusCode.Unauthorized,
-                "Sitzung abgelaufen",
-                "Bitte neu anmelden. Die Eingaben wurden nicht gespeichert.",
-                PageLink(LOGIN_PATH, "Anmelden"),
+                call.texts.sessionExpiredHeading,
+                call.texts.sessionExpiredText,
+                PageLink(LOGIN_PATH, call.texts.logIn),
             )
         }
     }

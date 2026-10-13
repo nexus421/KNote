@@ -48,6 +48,7 @@ internal fun testConfig(
     allowedSubjects: List<String> = listOf(ADMIN_SUB),
     sessionHours: Int = 12,
     maxSheetBytes: Int = 1_048_576,
+    language: String = "en",
 ) = AppConfig(
     publicBaseUrl = PUBLIC_BASE_URL,
     dataDir = dataDir,
@@ -57,6 +58,7 @@ internal fun testConfig(
     unlockAttemptsPerMinute = unlockAttemptsPerMinute,
     loginAttemptsPerMinute = loginAttemptsPerMinute,
     maxSheetBytes = maxSheetBytes,
+    language = language,
     oidc = OidcConfig(
         authorizeUrl = "$PROVIDER/authorize",
         tokenUrl = "$PROVIDER/api/oidc/token",

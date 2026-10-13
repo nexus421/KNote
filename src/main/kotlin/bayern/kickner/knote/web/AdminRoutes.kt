@@ -8,6 +8,8 @@ import bayern.kickner.knote.config.AppConfig
 import bayern.kickner.knote.crypto.CryptoGate
 import bayern.kickner.knote.crypto.decryptContent
 import bayern.kickner.knote.crypto.encryptContent
+import bayern.kickner.knote.i18n.Texts
+import bayern.kickner.knote.i18n.texts
 import bayern.kickner.knote.markdown.renderMarkdown
 import bayern.kickner.knote.storage.Sheet
 import bayern.kickner.knote.storage.SheetContent
@@ -26,15 +28,12 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import kotlinx.html.MAIN
 import kotnexlib.ResultOf2
 import java.time.Instant
 import java.time.ZoneId
 
 private const val TAG = "AdminRoutes"
-
-private const val PATH_TAKEN = "Pfad bereits vergeben"
-private const val INVALID_PROTECTION = "Ungültige Auswahl beim Schutz"
-private const val ADMIN_UNLOCK_HINT = "Zum Bearbeiten das Passwort des Blatts eingeben."
 
 /**
  * Everything below [ADMIN_PATH]: overview, create, edit and delete. Requires an admin login, accepts POSTs only from
@@ -56,7 +55,7 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, cl
         install(NoStore)
         authenticate(ADMIN_AUTH) {
             get {
-                call.respondPage(title = "Blätter") { overview(store.all, formatTime) }
+                call.respondPage(title = call.texts.sheets) { overview(call.texts, store.all, formatTime) }
             }
 
             get("/new") {
@@ -69,9 +68,10 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, cl
                 if (form.preview) return@post call.respondPreview(EditorTarget.New, values, config)
 
                 val wantsPassword = form.password.isNotEmpty() || form.passwordRepeat.isNotEmpty()
-                val issues = validateFields(form, config.maxSheetBytes) +
-                    (if (wantsPassword) validateNewPassword(form.password, form.passwordRepeat, config.minSheetPasswordLength) else emptyList()) +
-                    pathTaken(store, form.path, ownId = null)
+                val t = call.texts
+                val issues = validateFields(t, form, config.maxSheetBytes) +
+                    (if (wantsPassword) validateNewPassword(t, form.password, form.passwordRepeat, config.minSheetPasswordLength) else emptyList()) +
+                    pathTaken(t, store, form.path, ownId = null)
                 if (issues.isNotEmpty()) return@post call.respondEditor(HttpStatusCode.BadRequest, EditorTarget.New, values, issues, config)
 
                 val content = if (wantsPassword) gate.run { encryptContent(form.markdown, form.password) } else SheetContent.Plain(form.markdown)
@@ -84,7 +84,7 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, cl
                     }
 
                     is ResultOf2.Failure -> call.respondStoreError(saved.value) {
-                        call.respondEditor(HttpStatusCode.BadRequest, EditorTarget.New, values, listOf(PATH_TAKEN), config)
+                        call.respondEditor(HttpStatusCode.BadRequest, EditorTarget.New, values, listOf(t.pathTaken), config)
                     }
                 }
             }
@@ -100,9 +100,7 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, cl
                         config,
                     )
 
-                    is SheetContent.Encrypted -> call.respondPage(title = sheet.title) {
-                        unlockForm("Bearbeiten: ${sheet.title}", ADMIN_UNLOCK_HINT, "$ADMIN_PATH/edit/${sheet.id}/unlock")
-                    }
+                    is SheetContent.Encrypted -> call.respondPage(title = sheet.title) { adminUnlockForm(call.texts, sheet) }
                 }
             }
 
@@ -122,7 +120,7 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, cl
                         )
 
                         is ResultOf2.Failure -> call.respondUnlockFailure(sheet, result.value, config) {
-                            unlockForm("Bearbeiten: ${sheet.title}", ADMIN_UNLOCK_HINT, "$ADMIN_PATH/edit/${sheet.id}/unlock", WRONG_PASSWORD)
+                            adminUnlockForm(call.texts, sheet, call.texts.wrongPassword)
                         }
                     }
                 }
@@ -141,18 +139,19 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, cl
                 val values = EditorValues(form.path, form.title, form.markdown, choice, form.password, form.passwordRepeat)
                 if (form.preview) return@post call.respondPreview(target, values, config)
 
+                val t = call.texts
                 val needsNewPassword = choice == ProtectionChoice.SET || choice == ProtectionChoice.CHANGE
-                val issues = validateFields(form, config.maxSheetBytes) +
-                    listOfNotNull(INVALID_PROTECTION.takeIf { choice == null }) +
-                    (if (needsNewPassword) validateNewPassword(form.password, form.passwordRepeat, config.minSheetPasswordLength) else emptyList()) +
-                    pathTaken(store, form.path, ownId = sheet.id)
+                val issues = validateFields(t, form, config.maxSheetBytes) +
+                    listOfNotNull(t.invalidProtection.takeIf { choice == null }) +
+                    (if (needsNewPassword) validateNewPassword(t, form.password, form.passwordRepeat, config.minSheetPasswordLength) else emptyList()) +
+                    pathTaken(t, store, form.path, ownId = sheet.id)
                 if (issues.isNotEmpty() || choice == null) return@post call.respondEditor(HttpStatusCode.BadRequest, target, values, issues, config)
 
                 // The hidden field comes from the browser and may be manipulated
                 if (sheet.isProtected) {
                     val check = gate.run { decryptContent(sheet.content, form.currentPassword.orEmpty()) }
                     if (check is ResultOf2.Failure) return@post call.respondUnlockFailure(sheet, check.value, config) {
-                        unlockForm("Bearbeiten: ${sheet.title}", ADMIN_UNLOCK_HINT, "$ADMIN_PATH/edit/${sheet.id}/unlock", WRONG_PASSWORD)
+                        adminUnlockForm(t, sheet, t.wrongPassword)
                     }
                 }
                 val content = when (choice) {
@@ -170,14 +169,14 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, cl
                     }
 
                     is ResultOf2.Failure -> call.respondStoreError(saved.value) {
-                        call.respondEditor(HttpStatusCode.BadRequest, target, values, listOf(PATH_TAKEN), config)
+                        call.respondEditor(HttpStatusCode.BadRequest, target, values, listOf(t.pathTaken), config)
                     }
                 }
             }
 
             get("/delete/{id}") {
                 val sheet = store.findById(call.parameters["id"].orEmpty()) ?: return@get call.respondNotFound()
-                call.respondPage(title = "Blatt löschen") { deleteConfirm(sheet) }
+                call.respondPage(title = call.texts.deleteSheet) { deleteConfirm(call.texts, sheet) }
             }
 
             post("/delete/{id}") {
@@ -202,26 +201,26 @@ private suspend fun ApplicationCall.respondEditor(
     errors: List<String>,
     config: AppConfig,
     preview: String? = null,
-) = respondPage(status, if (target == EditorTarget.New) "Neues Blatt" else "Blatt bearbeiten") {
-    editor(target, values, errors, config.minSheetPasswordLength, preview)
+) = respondPage(status, if (target == EditorTarget.New) texts.newSheet else texts.editSheet) {
+    editor(texts, target, values, errors, config.minSheetPasswordLength, preview)
 }
+
+/** Password form of a protected sheet before its editor opens, with an optional [error]. */
+private fun MAIN.adminUnlockForm(t: Texts, sheet: Sheet, error: String? = null) =
+    unlockForm(t, t.editUnlockHeading(sheet.title), t.editUnlockHint, "$ADMIN_PATH/edit/${sheet.id}/unlock", error)
 
 /**
  * The editor again with [values] and the rendered Markdown above it. Nothing is validated or saved, only the size
  * is checked so an oversized text is not rendered. Costs no PBKDF2 derivation.
  */
 private suspend fun ApplicationCall.respondPreview(target: EditorTarget, values: EditorValues, config: AppConfig) {
-    val tooLarge = validateMarkdownSize(values.markdown, config.maxSheetBytes)
+    val tooLarge = validateMarkdownSize(texts, values.markdown, config.maxSheetBytes)
     val preview = if (tooLarge.isEmpty()) renderMarkdown(values.markdown) else null
     respondEditor(HttpStatusCode.OK, target, values, tooLarge, config, preview)
 }
 
-private suspend fun ApplicationCall.respondConflict() = respondMessage(
-    HttpStatusCode.Conflict,
-    "Blatt wurde geändert",
-    "Das Blatt wurde zwischenzeitlich geändert. Bitte erneut öffnen und die Änderung wiederholen.",
-    PageLink(ADMIN_PATH, "Zur Übersicht"),
-)
+private suspend fun ApplicationCall.respondConflict() =
+    respondMessage(HttpStatusCode.Conflict, texts.conflictHeading, texts.conflictText, PageLink(ADMIN_PATH, texts.toOverview))
 
 /** Maps a [StoreError] to its page. [onPathTaken] renders the form again with the message. */
 private suspend fun ApplicationCall.respondStoreError(error: StoreError, onPathTaken: suspend () -> Unit) {
@@ -231,15 +230,15 @@ private suspend fun ApplicationCall.respondStoreError(error: StoreError, onPathT
         StoreError.Conflict -> respondConflict()
         is StoreError.WriteFailed -> {
             staticLog(KLogger.Level.ERROR, TAG) { "Could not write ${error.reason}" }
-            respondMessage(HttpStatusCode.InternalServerError, "Fehler", "Die Änderung konnte nicht gespeichert werden.", PageLink(ADMIN_PATH, "Zur Übersicht"))
+            respondMessage(HttpStatusCode.InternalServerError, texts.errorHeading, texts.saveFailedText, PageLink(ADMIN_PATH, texts.toOverview))
         }
     }
 }
 
-/** [PATH_TAKEN] if another sheet than [ownId] already uses [path]. */
-private fun pathTaken(store: SheetStore, path: String, ownId: String?): List<String> {
+/** [Texts.pathTaken] if another sheet than [ownId] already uses [path]. */
+private fun pathTaken(t: Texts, store: SheetStore, path: String, ownId: String?): List<String> {
     val other = store.find(path)
-    return if (other != null && other.id != ownId) listOf(PATH_TAKEN) else emptyList()
+    return if (other != null && other.id != ownId) listOf(t.pathTaken) else emptyList()
 }
 
 /** `sub` of the logged in admin. Only called below [authenticate], where the principal always exists. */

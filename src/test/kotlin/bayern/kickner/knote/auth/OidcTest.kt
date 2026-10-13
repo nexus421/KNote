@@ -97,7 +97,7 @@ class OidcTest {
         val response = client.get("$CALLBACK_PATH?code=good-code&state=$state") { header(HttpHeaders.Cookie, "$STATE_COOKIE=other") }
 
         assertEquals(HttpStatusCode.Forbidden, response.status)
-        assertContains(response.bodyAsText(), "Anmeldung fehlgeschlagen")
+        assertContains(response.bodyAsText(), "Login failed")
         assertFalse(response.headers.getAll(HttpHeaders.SetCookie).orEmpty().any { it.startsWith("$ADMIN_COOKIE=") })
     }
 
@@ -134,7 +134,7 @@ class OidcTest {
         val response = client.get("$CALLBACK_PATH?code=good-code&state=$state") { header(HttpHeaders.Cookie, "$STATE_COOKIE=$state") }
 
         assertEquals(HttpStatusCode.Forbidden, response.status)
-        assertContains(response.bodyAsText(), "Kein Zugriff")
+        assertContains(response.bodyAsText(), "No access")
         assertFalse(response.headers.getAll(HttpHeaders.SetCookie).orEmpty().any { it.startsWith("$ADMIN_COOKIE=") })
     }
 

@@ -21,6 +21,7 @@ internal fun configJson(
     cryptoParallelism: Int? = null,
     minSheetPasswordLength: Int? = null,
     maxSheetBytes: Int? = null,
+    language: String? = null,
     authorizeUrl: String = "https://id.example.org/authorize",
     tokenUrl: String = "https://id.example.org/api/oidc/token",
     userinfoUrl: String = "https://id.example.org/api/oidc/userinfo",
@@ -39,6 +40,7 @@ internal fun configJson(
         cryptoParallelism?.let { "\"cryptoParallelism\": $it" },
         minSheetPasswordLength?.let { "\"minSheetPasswordLength\": $it" },
         maxSheetBytes?.let { "\"maxSheetBytes\": $it" },
+        language?.let { "\"language\": \"$it\"" },
     )
     return """
         {
@@ -72,6 +74,7 @@ class ConfigLoaderTest {
         assertEquals(1, config.cryptoParallelism)
         assertEquals(12, config.minSheetPasswordLength)
         assertEquals(1_048_576, config.maxSheetBytes)
+        assertEquals("en", config.language)
         assertEquals(listOf("sub-1"), config.oidc.allowedSubjects)
     }
 
@@ -145,6 +148,8 @@ class ConfigLoaderTest {
             configJson(minSheetPasswordLength = 1025) to "minSheetPasswordLength",
             configJson(maxSheetBytes = 1023) to "maxSheetBytes",
             configJson(maxSheetBytes = 10_485_761) to "maxSheetBytes",
+            configJson(language = "fr") to "language must be one of en, de",
+            configJson(language = "DE") to "language must be one of en, de",
             configJson(authorizeUrl = "http://id.example.org/authorize") to "oidc.authorizeUrl",
             configJson(tokenUrl = "ftp://id.example.org/token") to "oidc.tokenUrl",
             configJson(userinfoUrl = "/api/oidc/userinfo") to "oidc.userinfoUrl",
@@ -164,6 +169,7 @@ class ConfigLoaderTest {
             cryptoParallelism = 4,
             minSheetPasswordLength = 1,
             maxSheetBytes = 10_485_760,
+            language = "de",
             tokenUrl = "http://10.0.0.5:1411/api/oidc/token",
             userinfoUrl = "http://10.0.0.5:1411/api/oidc/userinfo",
         )

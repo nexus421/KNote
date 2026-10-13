@@ -16,6 +16,7 @@ through OIDC.
 * Optional password per sheet, content encrypted with AES-GCM
 * Admin login through an OIDC provider such as Pocket ID, access is managed there
 * Rate limits on password attempts and login
+* English and German interface, more languages are easy to add
 * No database, no JavaScript: one JSON file per sheet, one config file, one JAR
 
 ## Getting started

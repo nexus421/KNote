@@ -1,6 +1,7 @@
 package bayern.kickner.knote.web
 
 import bayern.kickner.knote.config.MAX_SHEET_PASSWORD_LENGTH
+import bayern.kickner.knote.i18n.Texts
 import bayern.kickner.knote.storage.MAX_PATH_LENGTH
 import bayern.kickner.knote.storage.isValidSheetPath
 import io.ktor.http.Parameters
@@ -9,15 +10,14 @@ import io.ktor.http.Parameters
  * Protection choice in the edit form. A protected sheet offers [KEEP], [CHANGE] and [REMOVE], an unprotected one
  * [LEAVE_OPEN] and [SET]. A new sheet has no choice: a filled password field protects it.
  *
- * @property formValue Value of the radio button.
- * @property label Text next to the radio button.
+ * @property formValue Value of the radio button. The label comes from [Texts.protectionChoice].
  */
-enum class ProtectionChoice(val formValue: String, val label: String) {
-    KEEP("keep", "unverändert"),
-    CHANGE("change", "neues Passwort"),
-    REMOVE("remove", "Schutz entfernen"),
-    LEAVE_OPEN("none", "ungeschützt lassen"),
-    SET("set", "Passwort setzen");
+enum class ProtectionChoice(val formValue: String) {
+    KEEP("keep"),
+    CHANGE("change"),
+    REMOVE("remove"),
+    LEAVE_OPEN("none"),
+    SET("set");
 
     companion object {
         /** Choices for a protected sheet, the first one is preselected. */
@@ -70,26 +70,25 @@ fun Parameters.toSheetForm(): SheetForm = SheetForm(
     preview = this[ACTION_FIELD] == PREVIEW_ACTION,
 )
 
-/** Checks path, title and Markdown size. The messages are German, they are shown in the form. */
-fun validateFields(form: SheetForm, maxSheetBytes: Int): List<String> {
+/** Checks path, title and Markdown size. The messages in [t] are shown in the form. */
+fun validateFields(t: Texts, form: SheetForm, maxSheetBytes: Int): List<String> {
     val issues = mutableListOf<String>()
-    if (isValidSheetPath(form.path).not())
-        issues += "Pfad ungültig: erlaubt sind a bis z, 0 bis 9 und Bindestrich, Abschnitte durch / getrennt, höchstens $MAX_PATH_LENGTH Zeichen"
-    if (form.title.length !in 1..MAX_TITLE_LENGTH) issues += "Titel 1 bis $MAX_TITLE_LENGTH Zeichen"
-    if (form.title.any { it.isISOControl() }) issues += "Titel darf keine Steuerzeichen enthalten"
-    issues += validateMarkdownSize(form.markdown, maxSheetBytes)
+    if (isValidSheetPath(form.path).not()) issues += t.invalidPath(MAX_PATH_LENGTH)
+    if (form.title.length !in 1..MAX_TITLE_LENGTH) issues += t.titleLength(MAX_TITLE_LENGTH)
+    if (form.title.any { it.isISOControl() }) issues += t.titleControlCharacters
+    issues += validateMarkdownSize(t, form.markdown, maxSheetBytes)
     return issues
 }
 
 /** Checks the size of [markdown] in UTF-8 bytes. Also used before a preview is rendered. */
-fun validateMarkdownSize(markdown: String, maxSheetBytes: Int): List<String> =
-    if (markdown.encodeToByteArray().size > maxSheetBytes) listOf("Inhalt zu groß (höchstens $maxSheetBytes Bytes)") else emptyList()
+fun validateMarkdownSize(t: Texts, markdown: String, maxSheetBytes: Int): List<String> =
+    if (markdown.encodeToByteArray().size > maxSheetBytes) listOf(t.contentTooLarge(maxSheetBytes)) else emptyList()
 
-/** Checks a new sheet password and its repetition. The messages are German, they are shown in the form. */
-fun validateNewPassword(password: String, repeat: String, minLength: Int): List<String> {
+/** Checks a new sheet password and its repetition. The messages in [t] are shown in the form. */
+fun validateNewPassword(t: Texts, password: String, repeat: String, minLength: Int): List<String> {
     val issues = mutableListOf<String>()
-    if (password.length < minLength) issues += "Passwort mindestens $minLength Zeichen"
-    if (password.length > MAX_SHEET_PASSWORD_LENGTH) issues += "Passwort höchstens $MAX_SHEET_PASSWORD_LENGTH Zeichen"
-    if (password != repeat) issues += "Passwörter stimmen nicht überein"
+    if (password.length < minLength) issues += t.passwordTooShort(minLength)
+    if (password.length > MAX_SHEET_PASSWORD_LENGTH) issues += t.passwordTooLong(MAX_SHEET_PASSWORD_LENGTH)
+    if (password != repeat) issues += t.passwordsDiffer
     return issues
 }

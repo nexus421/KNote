@@ -20,6 +20,7 @@ import kotlinx.serialization.Serializable
  * @property cryptoParallelism PBKDF2 derivations that may run at the same time.
  * @property minSheetPasswordLength Minimum length of a sheet password.
  * @property maxSheetBytes Maximum size of the Markdown of one sheet in UTF-8 bytes.
+ * @property language Language of the web pages, a code from [bayern.kickner.knote.i18n.Language].
  * @property oidc Admin login through the OIDC provider.
  */
 @Serializable
@@ -36,6 +37,7 @@ data class AppConfig(
     val cryptoParallelism: Int = 1,
     val minSheetPasswordLength: Int = 12,
     val maxSheetBytes: Int = 1_048_576,
+    val language: String = "en",
     val oidc: OidcConfig,
 ) {
     override fun toString() =

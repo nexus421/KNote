@@ -80,7 +80,7 @@ class AdminRoutesTest {
         assertEquals(HttpStatusCode.Found, get.status)
         assertEquals("/_auth/login", get.headers[HttpHeaders.Location])
         assertEquals(HttpStatusCode.Unauthorized, post.status)
-        assertContains(post.bodyAsText(), "Sitzung abgelaufen")
+        assertContains(post.bodyAsText(), "Session expired")
     }
 
     @Test
@@ -94,7 +94,7 @@ class AdminRoutesTest {
         val body = response.bodyAsText()
         assertTrue(body.indexOf("href=\"/alpha\"") < body.indexOf("href=\"/zeta\""), body)
         assertContains(body, "Z &lt;i&gt;")
-        assertContains(body, "geschützt")
+        assertContains(body, "protected")
         assertContains(body, "13.10.2026 14:00:00 CEST")
     }
 
@@ -133,10 +133,10 @@ class AdminRoutesTest {
 
         assertEquals(HttpStatusCode.BadRequest, invalid.status)
         val body = invalid.bodyAsText()
-        listOf("Pfad ungültig", "Titel 1 bis 100 Zeichen", "Passwort mindestens 12 Zeichen", "Passwörter stimmen nicht überein").forEach { assertContains(body, it) }
+        listOf("Invalid path", "Title 1 to 100 characters", "Password at least 12 characters", "Passwords do not match").forEach { assertContains(body, it) }
         assertContains(body, "value=\"Bad Path\"")
         assertEquals(HttpStatusCode.BadRequest, taken.status)
-        assertContains(taken.bodyAsText(), "Pfad bereits vergeben")
+        assertContains(taken.bodyAsText(), "Path already in use")
         assertEquals(1, admin.store.size)
     }
 
@@ -209,7 +209,7 @@ class AdminRoutesTest {
 
         val body = admin.post("/_admin/new", "path" to "neu", "title" to "Neu", "markdown" to "a".repeat(1025), ACTION_FIELD to PREVIEW_ACTION).bodyAsText()
 
-        assertContains(body, "Inhalt zu groß")
+        assertContains(body, "Content too large")
         assertFalse(body.contains("class=\"preview\""))
     }
 
@@ -219,7 +219,18 @@ class AdminRoutesTest {
 
         val body = admin.get("/_admin/new").bodyAsText()
 
-        assertTrue(body.indexOf("type=\"submit\" value=\"Anlegen\"") in 0 until body.indexOf("value=\"preview\""), body)
+        assertTrue(body.indexOf("type=\"submit\" value=\"Create\"") in 0 until body.indexOf("value=\"preview\""), body)
+    }
+
+    @Test
+    fun `the admin pages follow the configured language`() = testApplication {
+        val admin = admin(protectedSheet(), config = testConfig(language = "de"))
+
+        val overview = admin.get("/_admin").bodyAsText()
+        val editor = admin.get("/_admin/new").bodyAsText()
+
+        listOf("<h1>Seiten</h1>", "Neue Seite", "Abmelden", "geschützt", "Bearbeiten").forEach { assertContains(overview, it) }
+        listOf("value=\"Anlegen\"", ">Vorschau<", "Beide Felder leer lassen für eine ungeschützte Seite").forEach { assertContains(editor, it) }
     }
 
     @Test
@@ -339,7 +350,7 @@ class AdminRoutesTest {
         val response = admin.save(sheet, "protection" to "keep")
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
-        assertContains(response.bodyAsText(), "Ungültige Auswahl beim Schutz")
+        assertContains(response.bodyAsText(), "Invalid protection choice")
         assertEquals(sheet, admin.store.find("einkauf"))
     }
 
@@ -364,7 +375,7 @@ class AdminRoutesTest {
         val renamed = admin.save(sheet, "protection" to "none", "path" to "einkauf/neu")
 
         assertEquals(HttpStatusCode.BadRequest, taken.status)
-        assertContains(taken.bodyAsText(), "Pfad bereits vergeben")
+        assertContains(taken.bodyAsText(), "Path already in use")
         assertEquals(HttpStatusCode.SeeOther, renamed.status)
         assertNull(admin.store.find("einkauf"))
         assertEquals(sheet.id, admin.store.find("einkauf/neu")?.id)
@@ -379,7 +390,7 @@ class AdminRoutesTest {
         val delete = admin.post("/_admin/delete/${sheet.id}")
         val again = admin.post("/_admin/delete/${sheet.id}")
 
-        assertContains(confirm.bodyAsText(), "wirklich löschen?")
+        assertContains(confirm.bodyAsText(), "Really delete sheet")
         assertEquals(HttpStatusCode.SeeOther, delete.status)
         assertNull(admin.store.find("privat"))
         assertTrue(admin.dir.listDirectoryEntries().isEmpty())

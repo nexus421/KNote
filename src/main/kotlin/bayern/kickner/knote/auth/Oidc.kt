@@ -3,6 +3,7 @@ package bayern.kickner.knote.auth
 import bayern.kickner.klogger.KLogger
 import bayern.kickner.klogger.staticLog
 import bayern.kickner.knote.config.AppConfig
+import bayern.kickner.knote.i18n.texts
 import bayern.kickner.knote.web.*
 import io.ktor.client.*
 import io.ktor.client.request.*
@@ -142,7 +143,7 @@ fun AuthenticationConfig.oidc(config: AppConfig, httpClient: HttpClient) {
         )
         fallback = { cause ->
             staticLog(KLogger.Level.WARN, TAG) { "Login failed: ${cause.message.toLogLine()}" }
-            respondMessage(HttpStatusCode.Forbidden, "Anmeldung fehlgeschlagen", "Die Anmeldung wurde abgebrochen oder ist abgelaufen.", PageLink(LOGIN_PATH, "Erneut anmelden"))
+            respondMessage(HttpStatusCode.Forbidden, texts.loginFailedHeading, texts.loginAbortedText, PageLink(LOGIN_PATH, texts.logInAgain))
         }
     }
 }
@@ -190,12 +191,12 @@ private suspend fun ApplicationCall.completeLogin(config: AppConfig, httpClient:
 
         is LoginDecision.Denied -> {
             staticLog(KLogger.Level.WARN, TAG) { "Login denied for sub=${decision.sub.toLogLine()}" }
-            respondMessage(HttpStatusCode.Forbidden, "Kein Zugriff", "Dieses Konto hat keinen Zugriff auf KNote.")
+            respondMessage(HttpStatusCode.Forbidden, texts.noAccessHeading, texts.noAccessText)
         }
 
         is LoginDecision.Failed -> {
             staticLog(KLogger.Level.WARN, TAG) { "Login failed: ${decision.reason.toLogLine()}" }
-            respondMessage(HttpStatusCode.BadGateway, "Anmeldung fehlgeschlagen", "Der Anmeldedienst hat nicht wie erwartet geantwortet.", PageLink(LOGIN_PATH, "Erneut anmelden"))
+            respondMessage(HttpStatusCode.BadGateway, texts.loginFailedHeading, texts.loginProviderErrorText, PageLink(LOGIN_PATH, texts.logInAgain))
         }
     }
 }

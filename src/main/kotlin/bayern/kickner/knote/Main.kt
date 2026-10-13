@@ -13,6 +13,8 @@ import bayern.kickner.knote.config.AppConfig
 import bayern.kickner.knote.config.configWarnings
 import bayern.kickner.knote.config.loadConfig
 import bayern.kickner.knote.crypto.CryptoGate
+import bayern.kickner.knote.i18n.Language
+import bayern.kickner.knote.i18n.TextsKey
 import bayern.kickner.knote.storage.SheetStore
 import bayern.kickner.knote.web.SecurityHeaders
 import bayern.kickner.knote.web.UNLOCK_RATE_LIMIT
@@ -171,6 +173,8 @@ fun Application.knote(
     clock: () -> Long = System::currentTimeMillis,
     zone: ZoneId = ZoneId.systemDefault(),
 ) {
+    // The config loader rejects unknown codes, English covers configs built in code
+    attributes.put(TextsKey, (Language.of(config.language) ?: Language.ENGLISH).texts)
     install(SecurityHeaders)
     install(untrustedPeerWarning(config.trustedProxyIp))
     install(RequestBodyLimit) {

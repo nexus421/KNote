@@ -1,5 +1,6 @@
 package bayern.kickner.knote.config
 
+import bayern.kickner.knote.i18n.Language
 import kotlinx.serialization.json.Json
 import kotnexlib.ResultOf2
 import java.io.File
@@ -76,6 +77,7 @@ private fun validate(config: AppConfig, cpuCount: Int): List<String> {
     if (config.minSheetPasswordLength !in 1..MAX_SHEET_PASSWORD_LENGTH)
         issues += "minSheetPasswordLength must be between 1 and $MAX_SHEET_PASSWORD_LENGTH"
     if (config.maxSheetBytes !in 1024..10_485_760) issues += "maxSheetBytes must be between 1024 and 10485760"
+    if (Language.of(config.language) == null) issues += "language must be one of ${Language.entries.joinToString { it.code }}"
 
     val oidc = config.oidc
     if (oidc.authorizeUrl.isUrl(local = true).not()) issues += "oidc.authorizeUrl must start with https:// (http:// only for localhost)"

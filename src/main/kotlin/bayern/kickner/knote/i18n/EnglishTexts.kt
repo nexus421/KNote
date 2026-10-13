@@ -1,0 +1,92 @@
+package bayern.kickner.knote.i18n
+
+import bayern.kickner.knote.web.ProtectionChoice
+
+/** English texts, the default. */
+object EnglishTexts : Texts {
+    override val htmlLang = "en"
+
+    override val landingText = "Sheets are reachable directly at their address. Managing them needs a login."
+    override val logIn = "Log in"
+    override val logOut = "Log out"
+    override val loginFailedHeading = "Login failed"
+    override val loginAbortedText = "The login was cancelled or has expired."
+    override val loginProviderErrorText = "The login service did not answer as expected."
+    override val logInAgain = "Log in again"
+    override val noAccessHeading = "No access"
+    override val noAccessText = "This account has no access to KNote."
+    override val sessionExpiredHeading = "Session expired"
+    override val sessionExpiredText = "Please log in again. Your input was not saved."
+
+    override val notFoundHeading = "Not found"
+    override val notFoundText = "There is no sheet at this address."
+    override val lockedHint = "This sheet is protected with a password."
+    override val password = "Password"
+    override val unlock = "Unlock"
+    override val wrongPassword = "Wrong password"
+    override val damagedHeading = "Sheet damaged"
+    override val damagedText = "The sheet cannot be read."
+
+    override val sheets = "Sheets"
+    override val newSheet = "New sheet"
+    override val noSheetsYet = "No sheets yet."
+    override val columnPath = "Path"
+    override val columnTitle = "Title"
+    override val columnProtection = "Protection"
+    override val columnChanged = "Changed"
+    override val columnActions = "Actions"
+    override val protectedMarker = "protected"
+    override val edit = "Edit"
+    override val delete = "Delete"
+
+    override val editSheet = "Edit sheet"
+    override val previewHeading = "Preview (not saved)"
+    override val path = "Path"
+    override val pathHint = "Lowercase letters a to z, digits and hyphen, sections separated by /."
+    override val title = "Title"
+    override val content = "Content (Markdown)"
+    override val protection = "Protection"
+    override val create = "Create"
+    override val save = "Save"
+    override val preview = "Preview"
+    override val cancel = "Cancel"
+    override val newSheetPasswordHint = "Leave both fields empty for an unprotected sheet."
+    override val passwordRepeat = "Repeat password"
+    override val editUnlockHint = "Enter the password of the sheet to edit it."
+
+    override fun editUnlockHeading(title: String) = "Edit: $title"
+
+    override fun protectionChoice(choice: ProtectionChoice) = when (choice) {
+        ProtectionChoice.KEEP -> "unchanged"
+        ProtectionChoice.CHANGE -> "new password"
+        ProtectionChoice.REMOVE -> "remove protection"
+        ProtectionChoice.LEAVE_OPEN -> "leave unprotected"
+        ProtectionChoice.SET -> "set password"
+    }
+
+    override fun passwordHint(minLength: Int) = "At least $minLength characters. If the password is lost, the content is lost too."
+
+    override val deleteSheet = "Delete sheet"
+    override val deleteQuestionStart = "Really delete sheet "
+    override fun deleteQuestionEnd(title: String) = " ($title)?"
+    override val deleteProtectedWarning = "The sheet is protected. After deleting it, the content is gone for good."
+
+    override val conflictHeading = "Sheet was changed"
+    override val conflictText = "The sheet was changed in the meantime. Open it again and repeat your change."
+    override val toOverview = "To the overview"
+    override val errorHeading = "Error"
+    override val saveFailedText = "The change could not be saved."
+    override val crossSiteHeading = "Rejected"
+    override val crossSiteText = "The request did not come from KNote itself."
+
+    override val pathTaken = "Path already in use"
+    override val invalidProtection = "Invalid protection choice"
+    override val titleControlCharacters = "Title must not contain control characters"
+    override val passwordsDiffer = "Passwords do not match"
+    override fun invalidPath(maxLength: Int) =
+        "Invalid path: allowed are a to z, 0 to 9 and hyphen, sections separated by /, at most $maxLength characters"
+    override fun titleLength(maxLength: Int) = "Title 1 to $maxLength characters"
+    override fun contentTooLarge(maxBytes: Int) = "Content too large (at most $maxBytes bytes)"
+    override fun passwordTooShort(minLength: Int) = "Password at least $minLength characters"
+    override fun passwordTooLong(maxLength: Int) = "Password at most $maxLength characters"
+}
