@@ -1,6 +1,7 @@
 package bayern.kickner.knote.web
 
 import bayern.kickner.knote.BuildConfig
+import bayern.kickner.knote.timestampFormat
 import bayern.kickner.knote.auth.LOGIN_PATH
 import bayern.kickner.knote.auth.LOGOUT_PATH
 import bayern.kickner.knote.i18n.Texts
@@ -15,6 +16,8 @@ import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.util.AttributeKey
 import kotlinx.html.*
+import java.time.Instant
+import java.time.ZoneId
 
 /**
  * The stylesheet, the logo and the favicon, served from `resources/static`. The version in the query makes browsers
@@ -150,11 +153,21 @@ fun MAIN.landing(t: Texts) {
     }
 }
 
-/** A rendered sheet. [html] must come from `renderMarkdown`. */
-fun MAIN.sheetView(title: String, html: String) {
+/**
+ * A rendered sheet with the time of its last change below it. [html] must come from `renderMarkdown`.
+ *
+ * @param changed The last change, already formatted with [formatTime].
+ */
+fun MAIN.sheetView(t: Texts, title: String, html: String, changed: String) {
     h1 { +title }
     markdownArticle(html)
+    div(classes = "sheet-meta") {
+        span(classes = "muted") { +"${t.lastChanged}: $changed" }
+    }
 }
+
+/** [millis] as `dd.MM.yyyy HH:mm:ss z` in [zone], e.g. `13.10.2026 16:20:31 CEST`. */
+fun formatTime(millis: Long, zone: ZoneId): String = Instant.ofEpochMilli(millis).atZone(zone).format(timestampFormat)
 
 /** Embeds rendered Markdown. [html] must come from `renderMarkdown`, which escapes raw HTML and filters URLs. */
 private fun FlowContent.markdownArticle(html: String) {

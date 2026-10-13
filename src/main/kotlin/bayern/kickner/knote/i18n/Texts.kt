@@ -37,6 +37,7 @@ interface Texts {
     val wrongPassword: String
     val damagedHeading: String
     val damagedText: String
+    val lastChanged: String
 
     // Overview
     val sheets: String

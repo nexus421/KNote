@@ -17,7 +17,6 @@ import bayern.kickner.knote.storage.Sheet
 import bayern.kickner.knote.storage.SheetContent
 import bayern.kickner.knote.storage.SheetStore
 import bayern.kickner.knote.storage.StoreError
-import bayern.kickner.knote.timestampFormat
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
@@ -32,7 +31,6 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import kotlinx.html.MAIN
 import kotnexlib.ResultOf2
-import java.time.Instant
 import java.time.ZoneId
 
 private const val TAG = "AdminRoutes"
@@ -52,14 +50,12 @@ private const val TAG = "AdminRoutes"
  * @param zone Time zone of the timestamps in the overview.
  */
 fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, unlockProof: UnlockProof, config: AppConfig, clock: () -> Long, zone: ZoneId) {
-    val formatTime = { millis: Long -> Instant.ofEpochMilli(millis).atZone(zone).format(timestampFormat) }
-
     route(ADMIN_PATH) {
         install(CSRF) { onlyFrom(config.publicBaseUrl) }
         install(NoStore)
         authenticate(ADMIN_AUTH) {
             get {
-                call.respondPage(title = call.texts.sheets) { overview(call.texts, store.all, formatTime) }
+                call.respondPage(title = call.texts.sheets) { overview(call.texts, store.all) { formatTime(it, zone) } }
             }
 
             get("/new") {

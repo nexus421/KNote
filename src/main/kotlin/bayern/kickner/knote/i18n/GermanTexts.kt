@@ -27,6 +27,7 @@ object GermanTexts : Texts {
     override val wrongPassword = "Falsches Passwort"
     override val damagedHeading = "Seite beschädigt"
     override val damagedText = "Die Seite kann nicht gelesen werden."
+    override val lastChanged = "Zuletzt geändert"
 
     override val sheets = "Seiten"
     override val newSheet = "Neue Seite"

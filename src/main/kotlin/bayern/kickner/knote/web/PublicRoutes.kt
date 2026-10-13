@@ -28,6 +28,7 @@ import io.ktor.server.sessions.get
 import io.ktor.server.sessions.sessions
 import kotlinx.html.MAIN
 import kotnexlib.ResultOf2
+import java.time.ZoneId
 
 private const val TAG = "PublicRoutes"
 
@@ -60,12 +61,14 @@ fun Route.startPage(config: AppConfig, clock: () -> Long) {
  * `GET /{path...}` shows a sheet, or its password form if it is protected. `POST /{path...}` unlocks it: the
  * response is the rendered sheet itself, there is no session (a reload asks for the password again). Unknown and
  * invalid paths both answer 404, the lookup only ever goes through [store].
+ *
+ * @param zone Time zone of the "last changed" line.
  */
-fun Route.sheetRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig) {
+fun Route.sheetRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, zone: ZoneId) {
     get("/{path...}") {
         val sheet = store.find(call.sheetPath()) ?: return@get call.respondNotFound()
         when (val content = sheet.content) {
-            is SheetContent.Plain -> call.respondPage(title = sheet.title) { sheetView(sheet.title, renderMarkdown(content.markdown)) }
+            is SheetContent.Plain -> call.respondPage(title = sheet.title) { sheetView(call.texts, sheet.title, renderMarkdown(content.markdown), formatTime(sheet.updated, zone)) }
             is SheetContent.Encrypted -> call.respondPage(title = sheet.title, narrow = true) { unlockForm(call.texts, sheet.title, call.texts.lockedHint, "/${sheet.path}") }
         }
     }
@@ -79,7 +82,7 @@ fun Route.sheetRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig) {
             when (val result = gate.run { decryptContent(sheet.content, password) }) {
                 is ResultOf2.Success -> {
                     call.response.header(HttpHeaders.CacheControl, "no-store")
-                    call.respondPage(title = sheet.title) { sheetView(sheet.title, renderMarkdown(result.value)) }
+                    call.respondPage(title = sheet.title) { sheetView(call.texts, sheet.title, renderMarkdown(result.value), formatTime(sheet.updated, zone)) }
                 }
 
                 is ResultOf2.Failure -> call.respondUnlockFailure(sheet, result.value, config) {

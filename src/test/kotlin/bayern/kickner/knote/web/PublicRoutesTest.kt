@@ -59,6 +59,7 @@ class PublicRoutesTest {
         assertContains(body, "<title>Einkauf &lt;b&gt;</title>")
         assertContains(body, "<h1>Liste</h1>")
         assertContains(body, "<li>Brot</li>")
+        assertContains(body, "Last changed: 13.10.2026 14:00:00 CEST")
     }
 
     @Test
@@ -81,6 +82,7 @@ class PublicRoutesTest {
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("no-store", response.headers[HttpHeaders.CacheControl])
         assertContains(response.bodyAsText(), "<p>geheimer Inhalt</p>")
+        assertContains(response.bodyAsText(), "Last changed: 13.10.2026 14:00:00 CEST")
     }
 
     @Test

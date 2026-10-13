@@ -437,6 +437,17 @@ td.actions a + a {
     white-space: nowrap;
 }
 
+.sheet-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.2rem;
+    justify-content: space-between;
+    margin-top: 2rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.85rem;
+}
+
 /* Rendered Markdown */
 
 .markdown {

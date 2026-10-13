@@ -206,7 +206,7 @@ fun Application.knote(
         startPage(config, clock)
         authRoutes(config, httpClient, clock)
         adminRoutes(store, cryptoGate, UnlockProof(config.sessionSignKey.hexToByteArray()), config, clock, zone)
-        sheetRoutes(store, cryptoGate, config)
+        sheetRoutes(store, cryptoGate, config, zone)
     }
 }
 
