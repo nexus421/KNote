@@ -254,11 +254,11 @@ fun MAIN.sheetView(t: Texts, title: String, html: String, changed: String, downl
 private fun FlowContent.sheetActions(t: Texts, download: MarkdownDownload, editHref: String?) {
     if (editHref != null) a(href = editHref, classes = "no-print") { +t.edit }
     when (download) {
-            is MarkdownDownload.Link -> a(href = download.href, classes = "no-print") { +t.downloadMarkdown }
-            is MarkdownDownload.Form -> form(action = download.action, method = FormMethod.post, classes = "no-print") {
-                hiddenInput(name = "password") { value = download.password }
-                button(type = ButtonType.submit, classes = "link") { +t.downloadMarkdown }
-            }
+        is MarkdownDownload.Link -> a(href = download.href, classes = "no-print") { +t.downloadMarkdown }
+        is MarkdownDownload.Form -> form(action = download.action, method = FormMethod.post, classes = "no-print") {
+            hiddenInput(name = "password") { value = download.password }
+            button(type = ButtonType.submit, classes = "link") { +t.downloadMarkdown }
+        }
     }
 }
 

@@ -10,6 +10,7 @@ import bayern.kickner.knote.testConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.request.forms.submitForm
 import io.ktor.client.request.get
+import io.ktor.client.request.head
 import io.ktor.client.request.header
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -302,6 +303,18 @@ class PublicRoutesTest {
         assertEquals(HttpStatusCode.OK, response.status)
         assertEquals("ok", response.bodyAsText())
         assertEquals("nosniff", response.headers["X-Content-Type-Options"])
+    }
+
+    @Test
+    fun `head answers like get without a body`() = testApplication {
+        val client = knoteApp(storeWithSheets())
+
+        listOf("/" to HttpStatusCode.OK, "/einkauf" to HttpStatusCode.OK, "/_health" to HttpStatusCode.OK, "/gibt-es-nicht" to HttpStatusCode.NotFound)
+            .forEach { (path, status) ->
+                val response = client.head(path)
+                assertEquals(status, response.status, path)
+                assertEquals("", response.bodyAsText(), path)
+            }
     }
 
     @Test

@@ -39,6 +39,7 @@ import io.ktor.server.cio.CIOApplicationEngine
 import io.ktor.server.engine.EmbeddedServer
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.http.content.staticResources
+import io.ktor.server.plugins.autohead.AutoHeadResponse
 import io.ktor.server.plugins.bodylimit.RequestBodyLimit
 import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.statuspages.StatusPages
@@ -215,6 +216,8 @@ fun Application.knote(
     install(RequestBodyLimit) {
         bodyLimit { 3L * config.maxSheetBytes + FORM_OVERHEAD_BYTES }
     }
+    // HEAD answers like GET without a body, monitoring tools and `curl -I` use it
+    install(AutoHeadResponse)
     install(StatusPages) { knoteErrorPages() }
     install(Sessions) { adminCookie(config) }
     install(Authentication) {

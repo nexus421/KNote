@@ -28,6 +28,7 @@ dependencies {
     implementation("io.ktor:ktor-server-body-limit")
     implementation("io.ktor:ktor-server-html-builder")
     implementation("io.ktor:ktor-server-status-pages")
+    implementation("io.ktor:ktor-server-auto-head-response")
     implementation("io.ktor:ktor-client-cio")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
