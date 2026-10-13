@@ -292,7 +292,9 @@ input[type=text]:focus, input[type=password]:focus, input[type=search]:focus, te
     box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
+/* The editor grows with its content instead of scrolling inside (where the browser supports it) */
 textarea {
+    field-sizing: content;
     min-height: 22rem;
     font-size: 0.9em;
     line-height: 1.55;
