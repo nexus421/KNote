@@ -177,6 +177,16 @@ class PublicRoutesTest {
     }
 
     @Test
+    fun `shared links get a preview with title and logo`() = testApplication {
+        val client = knoteApp(storeWithSheets())
+
+        val body = client.get("/einkauf").bodyAsText()
+
+        assertContains(body, "<meta property=\"og:title\" content=\"Einkauf &lt;b&gt;\">")
+        assertContains(body, "<meta property=\"og:image\" content=\"https://notes.example.org/_static/logo.jpg?v=")
+    }
+
+    @Test
     fun `the footer can be switched off`() = testApplication {
         val client = knoteApp(storeWithSheets(), testConfig(showPoweredBy = false))
 

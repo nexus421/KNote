@@ -32,8 +32,16 @@ private const val FAVICON_PATH = "/_static/favicon.png$STATIC_QUERY"
 /** Repository linked from the footer. */
 private const val REPOSITORY_URL = "https://github.com/nexus421/KNote"
 
-/** Where the application keeps `showPoweredBy` from the config. */
-val PoweredByKey = AttributeKey<Boolean>("KNotePoweredBy")
+/**
+ * Config values the page frame needs, kept in the application attributes under [PageSettingsKey].
+ *
+ * @property showPoweredBy Shows the "Powered by KNote" footer.
+ * @property publicBaseUrl Builds absolute URLs for link previews.
+ */
+data class PageSettings(val showPoweredBy: Boolean, val publicBaseUrl: String)
+
+/** Where the application keeps its [PageSettings]. */
+val PageSettingsKey = AttributeKey<PageSettings>("KNotePageSettings")
 
 /** Path of the admin overview. */
 const val ADMIN_PATH = "/_admin"
@@ -98,11 +106,13 @@ suspend fun ApplicationCall.respondPage(
     startPage: Boolean = false,
     content: MAIN.() -> Unit,
 ) = respondHtml(status) {
+    val settings = application.attributes.getOrNull(PageSettingsKey)
     lang = texts.htmlLang
     head {
         meta(charset = "utf-8")
         meta(name = "viewport", content = "width=device-width, initial-scale=1")
         title(title)
+        linkPreview(title, settings?.publicBaseUrl)
         link(rel = "icon", type = "image/png", href = FAVICON_PATH)
         link(rel = "stylesheet", href = STYLESHEET_PATH)
     }
@@ -117,11 +127,26 @@ suspend fun ApplicationCall.respondPage(
             }
         }
         main(classes = listOfNotNull("narrow".takeIf { narrow }, "start".takeIf { startPage }).joinToString(" ").ifEmpty { null }) { content() }
-        if (application.attributes.getOrNull(PoweredByKey) != false) footer(classes = "site-footer") {
+        if (settings?.showPoweredBy != false) footer(classes = "site-footer") {
             +"${texts.poweredBy} "
             a(href = REPOSITORY_URL) { +"KNote" }
         }
     }
+}
+
+/**
+ * Open Graph tags: messengers such as Signal or Telegram show title and logo when a link is shared. The image
+ * needs an absolute URL, so it is left out without [publicBaseUrl].
+ */
+private fun HEAD.linkPreview(title: String, publicBaseUrl: String?) {
+    fun property(name: String, value: String) = meta {
+        attributes["property"] = name
+        content = value
+    }
+    property("og:title", title)
+    property("og:site_name", "KNote")
+    property("og:type", "website")
+    if (publicBaseUrl != null) property("og:image", "$publicBaseUrl$LOGO_PATH")
 }
 
 /** Responds with a page that only shows [heading], [text] and an optional [link]. Used for every error. */

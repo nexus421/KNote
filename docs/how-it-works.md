@@ -57,7 +57,8 @@ IPs cannot occupy every core.
 A disabled sheet answers 404 to the public, its Markdown file too, but stays in the admin area and can be enabled
 again. Disabling does not change the time of the last change.
 
-Every sheet page shows when the sheet was last changed and offers its Markdown as a file. Printing a sheet uses a
+Every page carries Open Graph tags (title, site name, logo), so messengers show a small preview when a link is
+shared. Every sheet page shows when the sheet was last changed and offers its Markdown as a file. Printing a sheet uses a
 print layout: black on white, without header, footer and background.
 
 ## Editor
