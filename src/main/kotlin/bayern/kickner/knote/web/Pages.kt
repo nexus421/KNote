@@ -13,6 +13,7 @@ import io.ktor.server.application.ApplicationCall
 import io.ktor.server.html.respondHtml
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
+import io.ktor.util.AttributeKey
 import kotlinx.html.*
 
 /**
@@ -23,6 +24,12 @@ private const val STATIC_QUERY = "?v=${BuildConfig.VERSION}"
 const val STYLESHEET_PATH = "/_static/knote.css$STATIC_QUERY"
 private const val LOGO_PATH = "/_static/logo.jpg$STATIC_QUERY"
 private const val FAVICON_PATH = "/_static/favicon.png$STATIC_QUERY"
+
+/** Repository linked from the footer. */
+private const val REPOSITORY_URL = "https://github.com/nexus421/KNote"
+
+/** Where the application keeps `showPoweredBy` from the config. */
+val PoweredByKey = AttributeKey<Boolean>("KNotePoweredBy")
 
 /** Path of the admin overview. */
 const val ADMIN_PATH = "/_admin"
@@ -70,8 +77,8 @@ data class EditorValues(
 )
 
 /**
- * Responds with a complete page: shared head, a header with logo and [content] inside `<main>`, in the configured
- * language. kotlinx.html escapes every text, [markdownArticle] is the only place with raw HTML.
+ * Responds with a complete page: shared head, a header with logo, [content] inside `<main>` and the optional
+ * "Powered by" footer, in the configured language. kotlinx.html escapes every text, [markdownArticle] is the only place with raw HTML.
  *
  * @param narrow Narrow card for short pages such as forms and messages.
  * @param header False hides the header, for the start page, which shows the logo large itself.
@@ -102,6 +109,10 @@ suspend fun ApplicationCall.respondPage(
             }
         }
         main(classes = if (narrow) "narrow" else null) { content() }
+        if (application.attributes.getOrNull(PoweredByKey) != false) footer(classes = "site-footer") {
+            +"${texts.poweredBy} "
+            a(href = REPOSITORY_URL) { +"KNote" }
+        }
     }
 }
 

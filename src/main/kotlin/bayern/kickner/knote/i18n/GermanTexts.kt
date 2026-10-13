@@ -5,6 +5,7 @@ import bayern.kickner.knote.web.ProtectionChoice
 /** German texts. */
 object GermanTexts : Texts {
     override val htmlLang = "de"
+    override val poweredBy = "Powered by"
 
     override val landingText = "Seiten sind direkt über ihre Adresse erreichbar. Die Verwaltung braucht eine Anmeldung."
     override val logIn = "Anmelden"

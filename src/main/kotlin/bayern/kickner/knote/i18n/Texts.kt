@@ -12,6 +12,9 @@ interface Texts {
     /** Value of the `lang` attribute of every page. */
     val htmlLang: String
 
+    /** Text before the linked "KNote" in the footer. */
+    val poweredBy: String
+
     // Start page and login
     val landingText: String
     val logIn: String

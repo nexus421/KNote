@@ -40,6 +40,7 @@ are reported at once, and error messages never contain the file content. See
 | `minSheetPasswordLength`  | Int    | `12`          | 1 to 1024                                     | Minimum length of a sheet password.                                                             |
 | `maxSheetBytes`           | Int    | `1048576`     | 1024 to 10485760                              | Maximum size of the Markdown of one sheet in UTF-8 bytes.                                       |
 | `language`                | String | `"en"`        | `"en"` or `"de"`                              | Language of the web pages.                                                                      |
+| `showPoweredBy`           | Bool   | `true`        |                                               | Shows "Powered by KNote" with a link to the repository at the bottom of every page.             |
 | `oidc.authorizeUrl`       | String | required      | `https://`                                    | Authorization endpoint, opened by the browser.                                                  |
 | `oidc.tokenUrl`           | String | required      | `https://` or `http://`                       | Token endpoint, called by KNote. May be an internal address.                                    |
 | `oidc.userinfoUrl`        | String | required      | `https://` or `http://`                       | Userinfo endpoint, called by KNote. May be an internal address.                                 |

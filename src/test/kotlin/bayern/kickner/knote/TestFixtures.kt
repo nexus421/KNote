@@ -49,6 +49,7 @@ internal fun testConfig(
     sessionHours: Int = 12,
     maxSheetBytes: Int = 1_048_576,
     language: String = "en",
+    showPoweredBy: Boolean = true,
 ) = AppConfig(
     publicBaseUrl = PUBLIC_BASE_URL,
     dataDir = dataDir,
@@ -59,6 +60,7 @@ internal fun testConfig(
     loginAttemptsPerMinute = loginAttemptsPerMinute,
     maxSheetBytes = maxSheetBytes,
     language = language,
+    showPoweredBy = showPoweredBy,
     oidc = OidcConfig(
         authorizeUrl = "$PROVIDER/authorize",
         tokenUrl = "$PROVIDER/api/oidc/token",

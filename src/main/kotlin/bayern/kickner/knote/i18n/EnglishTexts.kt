@@ -5,6 +5,7 @@ import bayern.kickner.knote.web.ProtectionChoice
 /** English texts, the default. */
 object EnglishTexts : Texts {
     override val htmlLang = "en"
+    override val poweredBy = "Powered by"
 
     override val landingText = "Sheets are reachable directly at their address. Managing them needs a login."
     override val logIn = "Log in"

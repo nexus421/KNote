@@ -164,6 +164,22 @@ class PublicRoutesTest {
     }
 
     @Test
+    fun `every page links to the repository in the footer by default`() = testApplication {
+        val client = knoteApp(storeWithSheets())
+
+        listOf("/", "/einkauf", "/gibt-es-nicht").forEach { path ->
+            assertContains(client.get(path).bodyAsText(), "Powered by <a href=\"https://github.com/nexus421/KNote\">KNote</a>", message = path)
+        }
+    }
+
+    @Test
+    fun `the footer can be switched off`() = testApplication {
+        val client = knoteApp(storeWithSheets(), testConfig(showPoweredBy = false))
+
+        assertFalse(client.get("/einkauf").bodyAsText().contains("Powered by"))
+    }
+
+    @Test
     fun `the start page offers the login`() = testApplication {
         val client = knoteApp()
 

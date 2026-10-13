@@ -21,6 +21,7 @@ import kotlinx.serialization.Serializable
  * @property minSheetPasswordLength Minimum length of a sheet password.
  * @property maxSheetBytes Maximum size of the Markdown of one sheet in UTF-8 bytes.
  * @property language Language of the web pages, a code from [bayern.kickner.knote.i18n.Language].
+ * @property showPoweredBy Shows "Powered by KNote" with a link to the repository at the bottom of every page.
  * @property oidc Admin login through the OIDC provider.
  */
 @Serializable
@@ -38,6 +39,7 @@ data class AppConfig(
     val minSheetPasswordLength: Int = 12,
     val maxSheetBytes: Int = 1_048_576,
     val language: String = "en",
+    val showPoweredBy: Boolean = true,
     val oidc: OidcConfig,
 ) {
     override fun toString() =

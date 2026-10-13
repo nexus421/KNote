@@ -16,6 +16,7 @@ import bayern.kickner.knote.crypto.CryptoGate
 import bayern.kickner.knote.i18n.Language
 import bayern.kickner.knote.i18n.TextsKey
 import bayern.kickner.knote.storage.SheetStore
+import bayern.kickner.knote.web.PoweredByKey
 import bayern.kickner.knote.web.SecurityHeaders
 import bayern.kickner.knote.web.UNLOCK_RATE_LIMIT
 import bayern.kickner.knote.web.adminRoutes
@@ -175,6 +176,7 @@ fun Application.knote(
 ) {
     // The config loader rejects unknown codes, English covers configs built in code
     attributes.put(TextsKey, (Language.of(config.language) ?: Language.ENGLISH).texts)
+    attributes.put(PoweredByKey, config.showPoweredBy)
     install(SecurityHeaders)
     install(untrustedPeerWarning(config.trustedProxyIp))
     install(RequestBodyLimit) {

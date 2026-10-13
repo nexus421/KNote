@@ -12,6 +12,7 @@
   "minSheetPasswordLength": 12,
   "maxSheetBytes": 1048576,
   "language": "en",
+  "showPoweredBy": true,
   "oidc": {
     "authorizeUrl": "https://id.example.org/authorize",
     "tokenUrl": "https://id.example.org/api/oidc/token",

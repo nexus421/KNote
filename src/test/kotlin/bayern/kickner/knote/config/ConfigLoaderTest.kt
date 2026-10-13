@@ -75,6 +75,7 @@ class ConfigLoaderTest {
         assertEquals(12, config.minSheetPasswordLength)
         assertEquals(1_048_576, config.maxSheetBytes)
         assertEquals("en", config.language)
+        assertTrue(config.showPoweredBy)
         assertEquals(listOf("sub-1"), config.oidc.allowedSubjects)
     }
 
