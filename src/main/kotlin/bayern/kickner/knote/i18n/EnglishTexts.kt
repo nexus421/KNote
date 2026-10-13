@@ -49,6 +49,10 @@ object EnglishTexts : Texts {
     override val enable = "Enable"
     override val edit = "Edit"
     override val duplicate = "Duplicate"
+    override val qrCode = "QR code"
+    override val qrHint = "Scanning the code opens the sheet."
+    override val downloadPng = "Download PNG"
+    override fun qrHeading(title: String) = "QR code: $title"
     override val delete = "Delete"
 
     override val editSheet = "Edit sheet"

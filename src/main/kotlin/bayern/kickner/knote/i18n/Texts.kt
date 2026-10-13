@@ -62,6 +62,12 @@ interface Texts {
     val enable: String
     val edit: String
     val duplicate: String
+    val qrCode: String
+    val qrHint: String
+    val downloadPng: String
+
+    /** Heading of the QR code page of the sheet [title]. */
+    fun qrHeading(title: String): String
     val delete: String
 
     // Editor

@@ -23,6 +23,14 @@ import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.readRawBytes
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import com.google.zxing.BinaryBitmap
+import com.google.zxing.MultiFormatReader
+import com.google.zxing.client.j2se.BufferedImageLuminanceSource
+import com.google.zxing.common.HybridBinarizer
+import javax.imageio.ImageIO
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.parameters
@@ -178,6 +186,24 @@ class AdminRoutesTest {
         emptyStore(dir).save(sheet)
 
         assertFalse(dir.resolve("${sheet.id}.json").toFile().readText().contains("enabled"))
+    }
+
+    @Test
+    fun `the qr code page shows a scannable code for the public address`() = testApplication {
+        val sheet = plainSheet("projekte/knote")
+        val admin = admin(sheet)
+
+        val page = admin.get("/_admin/qr/${sheet.id}").bodyAsText()
+        val png = admin.get("/_admin/qr/${sheet.id}/qr.png")
+        val visitor = admin.client.get("/_admin/qr/${sheet.id}/qr.png")
+
+        assertContains(page, "src=\"/_admin/qr/${sheet.id}/qr.png\"")
+        assertContains(page, "download=\"knote-qr.png\"")
+        assertEquals(ContentType.Image.PNG, png.contentType())
+        val image = ImageIO.read(png.readRawBytes().inputStream())
+        val text = MultiFormatReader().decode(BinaryBitmap(HybridBinarizer(BufferedImageLuminanceSource(image)))).text
+        assertEquals("https://notes.example.org/projekte/knote", text)
+        assertEquals(HttpStatusCode.Found, visitor.status)
     }
 
     @Test

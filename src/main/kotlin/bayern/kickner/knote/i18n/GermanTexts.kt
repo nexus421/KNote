@@ -49,6 +49,10 @@ object GermanTexts : Texts {
     override val enable = "Aktivieren"
     override val edit = "Bearbeiten"
     override val duplicate = "Duplizieren"
+    override val qrCode = "QR-Code"
+    override val qrHint = "Scannen öffnet die Seite."
+    override val downloadPng = "PNG herunterladen"
+    override fun qrHeading(title: String) = "QR-Code: $title"
     override val delete = "Löschen"
 
     override val editSheet = "Seite bearbeiten"

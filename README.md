@@ -16,7 +16,7 @@ through OIDC.
 * Any path per sheet, e.g. `https://notes.example.org/projects/knote`
 * Optional password per sheet, content encrypted with AES-GCM
 * Admin login through an OIDC provider such as Pocket ID, access is managed there
-* Search, sort, duplicate and disable sheets in the admin area
+* Search, sort, duplicate and disable sheets in the admin area, QR code with logo for every sheet
 * Rate limits on password attempts and login
 * English and German interface, more languages are easy to add
 * No database, no JavaScript: one JSON file per sheet, one config file, one JAR

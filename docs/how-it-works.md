@@ -19,6 +19,8 @@
 | GET    | `/_admin/duplicate/{id}`   | admin    |            | Editor for a new sheet filled with a copy, or the password form first.         |
 | POST   | `/_admin/duplicate/{id}/unlock` | admin | `unlock`   | Editor for a new sheet filled with a copy of the protected sheet.             |
 | POST   | `/_admin/toggle/{id}`      | admin    |            | Disables or enables the sheet, `303` back to the overview.                     |
+| GET    | `/_admin/qr/{id}`          | admin    |            | QR code of the public address of the sheet, with download.                     |
+| GET    | `/_admin/qr/{id}/qr.png`   | admin    |            | The QR code as PNG, with the K logo in the middle.                             |
 | GET    | `/_admin/delete/{id}`      | admin    |            | Confirmation page.                                                             |
 | POST   | `/_admin/delete/{id}`      | admin    |            | Deletes the sheet, `303` to `/_admin`.                                         |
 | GET    | `/{path}`                  | everyone |            | The rendered sheet, or the password form. `404` for unknown and invalid paths alike. |

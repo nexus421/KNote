@@ -350,6 +350,7 @@ private fun FlowContent.sheetTable(t: Texts, sheets: List<Sheet>, query: String,
                     td(classes = "actions") {
                         a(href = "$ADMIN_PATH/edit/${sheet.id}") { +t.edit }
                         a(href = "$ADMIN_PATH/duplicate/${sheet.id}") { +t.duplicate }
+                        a(href = "$ADMIN_PATH/qr/${sheet.id}") { +t.qrCode }
                         form(action = "$ADMIN_PATH/toggle/${sheet.id}", method = FormMethod.post) {
                             hiddenInput(name = "back") { value = overviewHref(order, query) }
                             button(type = ButtonType.submit, classes = "link") { +if (sheet.enabled) t.disable else t.enable }
@@ -473,6 +474,33 @@ private fun FORM.protectionFields(t: Texts, target: EditorTarget, values: Editor
             autoComplete = "new-password"
             value = values.passwordRepeat
         }
+    }
+}
+
+/**
+ * The QR code of [sheet] with a download. The image is the PNG at `qr.png` below the page.
+ *
+ * @param url The public address the code points to.
+ */
+fun MAIN.qrPage(t: Texts, sheet: Sheet, url: String) {
+    val image = "$ADMIN_PATH/qr/${sheet.id}/qr.png"
+    h1 { +t.qrHeading(sheet.title) }
+    div(classes = "qr") {
+        img(src = image, alt = url) {
+            width = "260"
+            height = "260"
+        }
+    }
+    p(classes = "hint") {
+        +"${t.qrHint} "
+        code { +url }
+    }
+    div(classes = "actions") {
+        a(href = image, classes = "button") {
+            attributes["download"] = "${sheet.path.substringAfterLast('/')}-qr.png"
+            +t.downloadPng
+        }
+        a(href = ADMIN_PATH) { +t.toOverview }
     }
 }
 

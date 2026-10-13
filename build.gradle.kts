@@ -36,9 +36,13 @@ dependencies {
     implementation("org.commonmark:commonmark-ext-gfm-strikethrough:0.30.1")
     implementation("org.commonmark:commonmark-ext-task-list-items:0.30.1")
     implementation("org.commonmark:commonmark-ext-autolink:0.30.1")
+    implementation("io.github.g0dkar:qrcode-kotlin:4.5.0")
 
     testImplementation(kotlin("test"))
     testImplementation("io.ktor:ktor-server-test-host")
+    // Reads the generated QR codes back, to prove that they scan despite the logo
+    testImplementation("com.google.zxing:core:3.5.4")
+    testImplementation("com.google.zxing:javase:3.5.4")
 }
 
 kotlin {

@@ -100,6 +100,8 @@ internal val appVersion: String =
  * [EXIT_DATA_ERROR] for broken sheet files, [EXIT_START_FAILED] if the server cannot start.
  */
 fun main(args: Array<String>) {
+    // The QR codes are drawn with Java2D, a server has no display
+    System.setProperty("java.awt.headless", "true")
     KLogger.configure {
         logToConsole()
         minLevel = KLogger.Level.DEBUG

@@ -13,10 +13,12 @@ import bayern.kickner.knote.crypto.encryptContent
 import bayern.kickner.knote.i18n.Texts
 import bayern.kickner.knote.i18n.texts
 import bayern.kickner.knote.markdown.renderMarkdown
+import bayern.kickner.knote.qr.qrCodePng
 import bayern.kickner.knote.storage.Sheet
 import bayern.kickner.knote.storage.SheetContent
 import bayern.kickner.knote.storage.SheetStore
 import bayern.kickner.knote.storage.StoreError
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
@@ -25,6 +27,7 @@ import io.ktor.server.auth.principal
 import io.ktor.server.plugins.csrf.CSRF
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.receiveParameters
+import io.ktor.server.response.respondBytes
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -44,6 +47,8 @@ private const val TAG = "AdminRoutes"
  * keeps it in a hidden field together with an [UnlockProof], and every save checks that proof before encrypting
  * again. The save therefore never tells whether a password is right, only the rate limited unlock does. The
  * preview button posts the same form to the same URL and gets it back with the rendered Markdown, nothing is saved.
+ *
+ * The QR code page shows a code for the public address of a sheet, with the K logo in the middle, as PNG to download.
  *
  * Disabling hides a sheet from the public (404) without deleting it, enabling shows it again.
  *
@@ -227,6 +232,16 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, unlockProof: UnlockPr
 
                     is ResultOf2.Failure -> call.respondStoreError(saved.value) { call.respondConflict() }
                 }
+            }
+
+            get("/qr/{id}") {
+                val sheet = store.findById(call.parameters["id"].orEmpty()) ?: return@get call.respondNotFound()
+                call.respondPage(title = call.texts.qrHeading(sheet.title), narrow = true) { qrPage(call.texts, sheet, "${config.publicBaseUrl}/${sheet.path}") }
+            }
+
+            get("/qr/{id}/qr.png") {
+                val sheet = store.findById(call.parameters["id"].orEmpty()) ?: return@get call.respondNotFound()
+                call.respondBytes(qrCodePng("${config.publicBaseUrl}/${sheet.path}"), ContentType.Image.PNG)
             }
 
             get("/delete/{id}") {
