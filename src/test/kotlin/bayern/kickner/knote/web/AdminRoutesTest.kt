@@ -57,6 +57,14 @@ private class Admin(val client: HttpClient, val cookie: String, val store: Sheet
         val defaults = mapOf("path" to sheet.path, "title" to sheet.title, "markdown" to "new content", "updated" to sheet.updated.toString())
         return post("/_admin/edit/${sheet.id}", *(defaults + fields.toMap()).toList().toTypedArray())
     }
+
+    /** Unlocks [sheet] like the browser does and returns the hidden fields of the editor, password and proof. */
+    suspend fun unlock(sheet: Sheet, password: String = OLD_PASSWORD): Array<Pair<String, String>> {
+        val editor = post("/_admin/edit/${sheet.id}/unlock", "password" to password).bodyAsText()
+        return listOf("currentPassword", "unlockProof").map { name ->
+            name to assertNotNull(Regex("name=\"$name\" value=\"([^\"]*)\"").find(editor), "no $name in the editor").groupValues[1]
+        }.toTypedArray()
+    }
 }
 
 private suspend fun ApplicationTestBuilder.admin(vararg sheets: Sheet, config: AppConfig = testConfig()): Admin {
@@ -183,13 +191,15 @@ class AdminRoutesTest {
         val sheet = protectedSheet()
         val admin = admin(sheet)
 
-        val response = admin.save(sheet, "protection" to "remove", "currentPassword" to OLD_PASSWORD, "markdown" to "**fett**", ACTION_FIELD to PREVIEW_ACTION)
+        val hidden = admin.unlock(sheet)
+        val response = admin.save(sheet, "protection" to "remove", *hidden, "markdown" to "**fett**", ACTION_FIELD to PREVIEW_ACTION)
 
         assertEquals(HttpStatusCode.OK, response.status)
         val body = response.bodyAsText()
         assertContains(body, "<strong>fett</strong>")
         assertContains(body, "name=\"updated\" value=\"${sheet.updated}\"")
         assertContains(body, "name=\"currentPassword\" value=\"$OLD_PASSWORD\"")
+        assertContains(body, "name=\"unlockProof\" value=\"${hidden.toMap()["unlockProof"]}\"")
         assertContains(body, "value=\"remove\" checked")
         assertEquals(sheet, admin.store.find("privat"))
     }
@@ -255,6 +265,7 @@ class AdminRoutesTest {
         assertContains(body, "<textarea rows=\"20\" id=\"markdown\" name=\"markdown\">\n\nfirst line was empty &lt;b&gt;</textarea>")
         assertContains(body, "name=\"updated\" value=\"${sheet.updated}\"")
         assertFalse(body.contains("currentPassword"))
+        assertFalse(body.contains("unlockProof"))
     }
 
     @Test
@@ -305,7 +316,7 @@ class AdminRoutesTest {
         val sheet = protectedSheet()
         val admin = admin(sheet)
 
-        admin.save(sheet, "protection" to "keep", "currentPassword" to OLD_PASSWORD)
+        admin.save(sheet, "protection" to "keep", *admin.unlock(sheet))
 
         assertEquals("new content", assertIs<ResultOf2.Success<String>>(admin.store.decrypt("privat", OLD_PASSWORD)).value)
     }
@@ -315,7 +326,7 @@ class AdminRoutesTest {
         val sheet = protectedSheet()
         val admin = admin(sheet)
 
-        admin.save(sheet, "protection" to "change", "currentPassword" to OLD_PASSWORD, "password" to NEW_PASSWORD, "passwordRepeat" to NEW_PASSWORD)
+        admin.save(sheet, "protection" to "change", *admin.unlock(sheet), "password" to NEW_PASSWORD, "passwordRepeat" to NEW_PASSWORD)
 
         assertEquals("new content", assertIs<ResultOf2.Success<String>>(admin.store.decrypt("privat", NEW_PASSWORD)).value)
         assertIs<ResultOf2.Failure<UnlockError>>(admin.store.decrypt("privat", OLD_PASSWORD))
@@ -326,7 +337,7 @@ class AdminRoutesTest {
         val sheet = protectedSheet()
         val admin = admin(sheet)
 
-        admin.save(sheet, "protection" to "remove", "currentPassword" to OLD_PASSWORD)
+        admin.save(sheet, "protection" to "remove", *admin.unlock(sheet))
 
         assertEquals(SheetContent.Plain("new content"), admin.store.content("privat"))
     }
@@ -335,10 +346,27 @@ class AdminRoutesTest {
     fun `a manipulated current password changes nothing`() = testApplication {
         val sheet = protectedSheet()
         val admin = admin(sheet)
+        val proof = admin.unlock(sheet).toMap().getValue("unlockProof")
 
-        val response = admin.save(sheet, "protection" to "remove", "currentPassword" to "guessed-password")
+        val withoutProof = admin.save(sheet, "protection" to "remove", "currentPassword" to OLD_PASSWORD)
+        val guessed = admin.save(sheet, "protection" to "remove", "currentPassword" to "guessed-password", "unlockProof" to proof)
+        val forged = admin.save(sheet, "protection" to "remove", "currentPassword" to OLD_PASSWORD, "unlockProof" to "00".repeat(32))
 
-        assertEquals(HttpStatusCode.Forbidden, response.status)
+        listOf(withoutProof, guessed, forged).forEach { assertEquals(HttpStatusCode.Forbidden, it.status) }
+        assertEquals(sheet, admin.store.find("privat"))
+    }
+
+    @Test
+    fun `a save never tells whether a guessed password is right`() = testApplication {
+        val sheet = protectedSheet()
+        val admin = admin(sheet)
+
+        // Without the proof from an unlock, the right password is rejected exactly like a wrong one
+        val right = admin.save(sheet, "protection" to "remove", "currentPassword" to OLD_PASSWORD)
+        val wrong = admin.save(sheet, "protection" to "remove", "currentPassword" to "wrong-password")
+
+        assertEquals(wrong.status, right.status)
+        assertEquals(wrong.bodyAsText(), right.bodyAsText())
         assertEquals(sheet, admin.store.find("privat"))
     }
 

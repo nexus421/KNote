@@ -43,6 +43,7 @@ const val PREVIEW_ACTION = "preview"
  *
  * @property updated Optimistic lock of an edit, null for a new sheet or a damaged form.
  * @property currentPassword Hidden field of a protected sheet. Comes from the browser and is checked before use.
+ * @property unlockProof Hidden field of a protected sheet, see `UnlockProof`.
  * @property preview True if the preview button was used instead of the save button.
  */
 data class SheetForm(
@@ -54,6 +55,7 @@ data class SheetForm(
     val protection: ProtectionChoice?,
     val updated: Long?,
     val currentPassword: String?,
+    val unlockProof: String? = null,
     val preview: Boolean = false,
 )
 
@@ -67,6 +69,7 @@ fun Parameters.toSheetForm(): SheetForm = SheetForm(
     protection = ProtectionChoice.fromForm(this["protection"]),
     updated = this["updated"]?.toLongOrNull(),
     currentPassword = this["currentPassword"],
+    unlockProof = this["unlockProof"],
     preview = this[ACTION_FIELD] == PREVIEW_ACTION,
 )
 

@@ -13,6 +13,7 @@ import bayern.kickner.knote.config.AppConfig
 import bayern.kickner.knote.config.configWarnings
 import bayern.kickner.knote.config.loadConfig
 import bayern.kickner.knote.crypto.CryptoGate
+import bayern.kickner.knote.crypto.UnlockProof
 import bayern.kickner.knote.i18n.Language
 import bayern.kickner.knote.i18n.TextsKey
 import bayern.kickner.knote.storage.SheetStore
@@ -202,7 +203,7 @@ fun Application.knote(
         staticResources("/_static", "static")
         startPage(config, clock)
         authRoutes(config, httpClient, clock)
-        adminRoutes(store, cryptoGate, config, clock, zone)
+        adminRoutes(store, cryptoGate, UnlockProof(config.sessionSignKey.hexToByteArray()), config, clock, zone)
         sheetRoutes(store, cryptoGate, config)
     }
 }

@@ -6,6 +6,8 @@ import bayern.kickner.knote.auth.ADMIN_AUTH
 import bayern.kickner.knote.auth.AdminSession
 import bayern.kickner.knote.config.AppConfig
 import bayern.kickner.knote.crypto.CryptoGate
+import bayern.kickner.knote.crypto.UnlockError
+import bayern.kickner.knote.crypto.UnlockProof
 import bayern.kickner.knote.crypto.decryptContent
 import bayern.kickner.knote.crypto.encryptContent
 import bayern.kickner.knote.i18n.Texts
@@ -41,13 +43,15 @@ private const val TAG = "AdminRoutes"
  * so paths with slashes never collide with `/edit` or `/delete`.
  *
  * Editing a protected sheet needs its password (the content cannot be read otherwise). After the unlock the editor
- * keeps it in a hidden field, and every save checks it against the stored content before encrypting again. The
+ * keeps it in a hidden field together with an [UnlockProof], and every save checks that proof before encrypting
+ * again. The save therefore never tells whether a password is right, only the rate limited unlock does. The
  * preview button posts the same form to the same URL and gets it back with the rendered Markdown, nothing is saved.
  *
+ * @param unlockProof Issues and checks the proof that the password of a protected sheet is known.
  * @param clock Current time in Unix milliseconds, injectable for tests.
  * @param zone Time zone of the timestamps in the overview.
  */
-fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, clock: () -> Long, zone: ZoneId) {
+fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, unlockProof: UnlockProof, config: AppConfig, clock: () -> Long, zone: ZoneId) {
     val formatTime = { millis: Long -> Instant.ofEpochMilli(millis).atZone(zone).format(timestampFormat) }
 
     route(ADMIN_PATH) {
@@ -113,7 +117,7 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, cl
                     when (val result = gate.run { decryptContent(sheet.content, password) }) {
                         is ResultOf2.Success -> call.respondEditor(
                             HttpStatusCode.OK,
-                            EditorTarget.Existing(sheet.id, sheet.updated, password),
+                            EditorTarget.Existing(sheet.id, sheet.updated, password, unlockProof.create(sheet.id, sheet.updated, password)),
                             EditorValues(sheet.path, sheet.title, result.value),
                             emptyList(),
                             config,
@@ -134,8 +138,13 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, cl
 
                 val allowedChoices = if (sheet.isProtected) ProtectionChoice.forProtected else ProtectionChoice.forUnprotected
                 val choice = form.protection?.takeIf { it in allowedChoices }
-                // The hidden current password goes back unchecked, the save checks it
-                val target = EditorTarget.Existing(sheet.id, sheet.updated, form.currentPassword.takeIf { sheet.isProtected })
+                // Password and proof go back unchecked, the save checks them
+                val target = EditorTarget.Existing(
+                    sheet.id,
+                    sheet.updated,
+                    form.currentPassword.takeIf { sheet.isProtected },
+                    form.unlockProof.takeIf { sheet.isProtected },
+                )
                 val values = EditorValues(form.path, form.title, form.markdown, choice, form.password, form.passwordRepeat)
                 if (form.preview) return@post call.respondPreview(target, values, config)
 
@@ -147,12 +156,10 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, cl
                     pathTaken(t, store, form.path, ownId = sheet.id)
                 if (issues.isNotEmpty() || choice == null) return@post call.respondEditor(HttpStatusCode.BadRequest, target, values, issues, config)
 
-                // The hidden field comes from the browser and may be manipulated
-                if (sheet.isProtected) {
-                    val check = gate.run { decryptContent(sheet.content, form.currentPassword.orEmpty()) }
-                    if (check is ResultOf2.Failure) return@post call.respondUnlockFailure(sheet, check.value, config) {
-                        adminUnlockForm(t, sheet, t.wrongPassword)
-                    }
+                // The hidden fields come from the browser and may be manipulated
+                val proven = unlockProof.verify(form.unlockProof, sheet.id, sheet.updated, form.currentPassword.orEmpty())
+                if (sheet.isProtected && proven.not()) return@post call.respondUnlockFailure(sheet, UnlockError.WrongPassword, config) {
+                    adminUnlockForm(t, sheet, t.wrongPassword)
                 }
                 val content = when (choice) {
                     ProtectionChoice.KEEP -> gate.run { encryptContent(form.markdown, form.currentPassword.orEmpty()) }

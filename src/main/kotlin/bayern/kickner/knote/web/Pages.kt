@@ -21,7 +21,7 @@ import kotlinx.html.*
  * load them again after an update.
  */
 private const val STATIC_QUERY = "?v=${BuildConfig.VERSION}"
-const val STYLESHEET_PATH = "/_static/knote.css$STATIC_QUERY"
+private const val STYLESHEET_PATH = "/_static/knote.css$STATIC_QUERY"
 private const val LOGO_PATH = "/_static/logo.jpg$STATIC_QUERY"
 private const val FAVICON_PATH = "/_static/favicon.png$STATIC_QUERY"
 
@@ -56,9 +56,11 @@ sealed interface EditorTarget {
      *
      * @property updated [Sheet.updated] when the editor was opened, sent back as optimistic lock.
      * @property currentPassword The password the sheet was unlocked with, null for an unprotected sheet. Sent back in
-     * a hidden field so saving does not ask for it again. The server checks it before every save.
+     * a hidden field so saving does not ask for it again.
+     * @property unlockProof Proof from the unlock that [currentPassword] is right (see `UnlockProof`). Every save of a
+     * protected sheet checks it.
      */
-    data class Existing(val id: String, val updated: Long, val currentPassword: String?) : EditorTarget
+    data class Existing(val id: String, val updated: Long, val currentPassword: String?, val unlockProof: String? = null) : EditorTarget
 }
 
 /**
@@ -78,7 +80,8 @@ data class EditorValues(
 
 /**
  * Responds with a complete page: shared head, a header with logo, [content] inside `<main>` and the optional
- * "Powered by" footer, in the configured language. kotlinx.html escapes every text, [markdownArticle] is the only place with raw HTML.
+ * "Powered by" footer, in the configured language. kotlinx.html escapes every text, [markdownArticle] is the only
+ * place with raw HTML.
  *
  * @param narrow Narrow card for short pages such as forms and messages.
  * @param header False hides the header, for the start page, which shows the logo large itself.
@@ -254,6 +257,7 @@ fun MAIN.editor(t: Texts, target: EditorTarget, values: EditorValues, errors: Li
         if (target is EditorTarget.Existing) {
             hiddenInput(name = "updated") { value = target.updated.toString() }
             if (target.currentPassword != null) hiddenInput(name = "currentPassword") { value = target.currentPassword }
+            if (target.unlockProof != null) hiddenInput(name = "unlockProof") { value = target.unlockProof }
         }
         label {
             htmlFor = "path"

@@ -39,8 +39,10 @@ The Markdown is encrypted with KotNexLib's `AES.GCM.encryptWithPassword` (PBKDF2
 iterations, fresh salt and nonce per save, no compression). Path and title stay plain text, so the overview works
 without passwords. Opening a protected sheet shows a password form. The POST answers with the rendered sheet
 directly, there is no session: a reload asks for the password again. Editing a protected sheet needs its password
-too. The editor keeps it in a hidden field and every save checks it against the stored content before encrypting
-again. A forgotten password means the content is lost. The admin can still delete the sheet.
+too. The unlock is rate limited like the public one. The editor keeps the password in a hidden field together
+with a proof from the unlock (HMAC with `sessionSignKey` over sheet id, version and password). Every save checks that
+proof before encrypting again, so a save never tells whether a guessed password is right. A forgotten password means
+the content is lost. The admin can still delete the sheet.
 
 All PBKDF2 derivations run off the request threads and at most `cryptoParallelism` at once, so requests from many
 IPs cannot occupy every core.
