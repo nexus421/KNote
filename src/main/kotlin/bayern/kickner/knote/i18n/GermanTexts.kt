@@ -44,6 +44,7 @@ object GermanTexts : Texts {
     override val columnActions = "Aktionen"
     override val protectedMarker = "geschützt"
     override val edit = "Bearbeiten"
+    override val duplicate = "Duplizieren"
     override val delete = "Löschen"
 
     override val editSheet = "Seite bearbeiten"
@@ -62,6 +63,10 @@ object GermanTexts : Texts {
     override val editUnlockHint = "Zum Bearbeiten das Passwort der Seite eingeben."
 
     override fun editUnlockHeading(title: String) = "Bearbeiten: $title"
+    override fun duplicateUnlockHeading(title: String) = "Duplizieren: $title"
+    override val duplicateUnlockHint = "Zum Duplizieren das Passwort der Seite eingeben."
+    override fun copyTitle(title: String) = "Kopie von $title"
+    override val copyPathSuffix = "kopie"
 
     override fun protectionChoice(choice: ProtectionChoice) = when (choice) {
         ProtectionChoice.KEEP -> "unverändert"

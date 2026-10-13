@@ -45,6 +45,10 @@ private const val TAG = "AdminRoutes"
  * again. The save therefore never tells whether a password is right, only the rate limited unlock does. The
  * preview button posts the same form to the same URL and gets it back with the rendered Markdown, nothing is saved.
  *
+ * Duplicating opens the editor for a new sheet, filled with the content of the original, a copy title and a free
+ * copy path. Nothing is saved before "create". A protected original needs its password first, and the copy keeps
+ * that password unless the fields are cleared.
+ *
  * @param unlockProof Issues and checks the proof that the password of a protected sheet is known.
  * @param clock Current time in Unix milliseconds, injectable for tests.
  * @param zone Time zone of the timestamps in the overview.
@@ -179,6 +183,33 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, unlockProof: UnlockPr
                 }
             }
 
+            get("/duplicate/{id}") {
+                val sheet = store.findById(call.parameters["id"].orEmpty()) ?: return@get call.respondNotFound()
+                when (val content = sheet.content) {
+                    is SheetContent.Plain ->
+                        call.respondEditor(HttpStatusCode.OK, EditorTarget.New, copyValues(call.texts, store, sheet, content.markdown, password = ""), emptyList(), config)
+
+                    is SheetContent.Encrypted -> call.respondPage(title = sheet.title, narrow = true) { duplicateUnlockForm(call.texts, sheet) }
+                }
+            }
+
+            rateLimit(UNLOCK_RATE_LIMIT) {
+                post("/duplicate/{id}/unlock") {
+                    val sheet = store.findById(call.parameters["id"].orEmpty()) ?: return@post call.respondNotFound()
+                    if (sheet.isProtected.not()) return@post call.respondSeeOther("$ADMIN_PATH/duplicate/${sheet.id}")
+
+                    val password = call.receiveParameters()["password"].orEmpty()
+                    when (val result = gate.run { decryptContent(sheet.content, password) }) {
+                        is ResultOf2.Success ->
+                            call.respondEditor(HttpStatusCode.OK, EditorTarget.New, copyValues(call.texts, store, sheet, result.value, password), emptyList(), config)
+
+                        is ResultOf2.Failure -> call.respondUnlockFailure(sheet, result.value, config) {
+                            duplicateUnlockForm(call.texts, sheet, call.texts.wrongPassword)
+                        }
+                    }
+                }
+            }
+
             get("/delete/{id}") {
                 val sheet = store.findById(call.parameters["id"].orEmpty()) ?: return@get call.respondNotFound()
                 call.respondPage(title = call.texts.deleteSheet, narrow = true) { deleteConfirm(call.texts, sheet) }
@@ -208,6 +239,20 @@ private suspend fun ApplicationCall.respondEditor(
     preview: String? = null,
 ) = respondPage(status, if (target == EditorTarget.New) texts.newSheet else texts.editSheet) {
     editor(texts, target, values, errors, config.minSheetPasswordLength, preview)
+}
+
+/** Password form of a protected sheet before it is duplicated, with an optional [error]. */
+private fun MAIN.duplicateUnlockForm(t: Texts, sheet: Sheet, error: String? = null) =
+    unlockForm(t, t.duplicateUnlockHeading(sheet.title), t.duplicateUnlockHint, "$ADMIN_PATH/duplicate/${sheet.id}/unlock", error)
+
+/**
+ * Editor values for a copy of [sheet]: its [markdown], [Texts.copyTitle] and the first free path of the form
+ * `path-copy`, `path-copy-2` and so on. [password] fills both password fields, empty for an unprotected original.
+ */
+private fun copyValues(t: Texts, store: SheetStore, sheet: Sheet, markdown: String, password: String): EditorValues {
+    val base = "${sheet.path}-${t.copyPathSuffix}"
+    val path = generateSequence(1) { it + 1 }.map { if (it == 1) base else "$base-$it" }.first { store.find(it) == null }
+    return EditorValues(path, t.copyTitle(sheet.title), markdown, password = password, passwordRepeat = password)
 }
 
 /** Password form of a protected sheet before its editor opens, with an optional [error]. */

@@ -123,6 +123,50 @@ class AdminRoutesTest {
     }
 
     @Test
+    fun `duplicating opens a filled editor for a new sheet and saves nothing`() = testApplication {
+        val sheet = plainSheet("einkauf", markdown = "# Liste", title = "Einkauf")
+        val admin = admin(sheet, plainSheet("einkauf-copy"))
+
+        val overview = admin.get("/_admin").bodyAsText()
+        val editor = admin.get("/_admin/duplicate/${sheet.id}").bodyAsText()
+
+        assertContains(overview, "href=\"/_admin/duplicate/${sheet.id}\"")
+        assertContains(editor, "<form action=\"/_admin/new\" method=\"post\">")
+        assertContains(editor, "value=\"einkauf-copy-2\"")
+        assertContains(editor, "value=\"Copy of Einkauf\"")
+        assertContains(editor, "# Liste</textarea>")
+        assertEquals(2, admin.store.size)
+    }
+
+    @Test
+    fun `a protected sheet is duplicated after its password and the copy keeps it`() = testApplication {
+        val sheet = protectedSheet()
+        val admin = admin(sheet)
+
+        val form = admin.get("/_admin/duplicate/${sheet.id}").bodyAsText()
+        val wrong = admin.post("/_admin/duplicate/${sheet.id}/unlock", "password" to "wrong-password")
+        val editor = admin.post("/_admin/duplicate/${sheet.id}/unlock", "password" to OLD_PASSWORD).bodyAsText()
+
+        assertContains(form, "action=\"/_admin/duplicate/${sheet.id}/unlock\"")
+        assertFalse(form.contains("old content"))
+        assertEquals(HttpStatusCode.Forbidden, wrong.status)
+        assertContains(editor, "old content</textarea>")
+        assertContains(editor, "value=\"privat-copy\"")
+        assertContains(editor, "id=\"passwordRepeat\" minlength=\"12\" autocomplete=\"new-password\" value=\"$OLD_PASSWORD\"")
+    }
+
+    @Test
+    fun `copies are named in the configured language`() = testApplication {
+        val sheet = plainSheet("einkauf", title = "Einkauf")
+        val admin = admin(sheet, config = testConfig(language = "de"))
+
+        val editor = admin.get("/_admin/duplicate/${sheet.id}").bodyAsText()
+
+        assertContains(editor, "value=\"einkauf-kopie\"")
+        assertContains(editor, "value=\"Kopie von Einkauf\"")
+    }
+
+    @Test
     fun `a plain sheet is created`() = testApplication {
         val admin = admin()
 
@@ -445,7 +489,7 @@ class AdminRoutesTest {
     fun `unknown ids answer 404`() = testApplication {
         val admin = admin()
 
-        listOf("/_admin/edit/nope", "/_admin/delete/nope").forEach { assertEquals(HttpStatusCode.NotFound, admin.get(it).status, it) }
+        listOf("/_admin/edit/nope", "/_admin/delete/nope", "/_admin/duplicate/nope").forEach { assertEquals(HttpStatusCode.NotFound, admin.get(it).status, it) }
     }
 
     @Test

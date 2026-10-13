@@ -264,7 +264,8 @@ private fun FlowContent.sheetTable(t: Texts, sheets: List<Sheet>, formatTime: (L
                     td(classes = "muted") { +formatTime(sheet.updated) }
                     td(classes = "actions") {
                         a(href = "$ADMIN_PATH/edit/${sheet.id}") { +t.edit }
-                        a(href = "$ADMIN_PATH/delete/${sheet.id}") { +t.delete }
+                        a(href = "$ADMIN_PATH/duplicate/${sheet.id}") { +t.duplicate }
+                        a(href = "$ADMIN_PATH/delete/${sheet.id}", classes = "danger") { +t.delete }
                     }
                 }
             }

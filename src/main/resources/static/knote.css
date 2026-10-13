@@ -436,6 +436,9 @@ td a:hover {
 
 td.actions a + a {
     margin-left: 0.9rem;
+}
+
+td.actions a.danger {
     color: var(--danger);
 }
 

@@ -44,6 +44,7 @@ object EnglishTexts : Texts {
     override val columnActions = "Actions"
     override val protectedMarker = "protected"
     override val edit = "Edit"
+    override val duplicate = "Duplicate"
     override val delete = "Delete"
 
     override val editSheet = "Edit sheet"
@@ -62,6 +63,10 @@ object EnglishTexts : Texts {
     override val editUnlockHint = "Enter the password of the sheet to edit it."
 
     override fun editUnlockHeading(title: String) = "Edit: $title"
+    override fun duplicateUnlockHeading(title: String) = "Duplicate: $title"
+    override val duplicateUnlockHint = "Enter the password of the sheet to duplicate it."
+    override fun copyTitle(title: String) = "Copy of $title"
+    override val copyPathSuffix = "copy"
 
     override fun protectionChoice(choice: ProtectionChoice) = when (choice) {
         ProtectionChoice.KEEP -> "unchanged"

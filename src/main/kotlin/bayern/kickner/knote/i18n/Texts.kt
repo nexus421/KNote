@@ -55,6 +55,7 @@ interface Texts {
     val columnActions: String
     val protectedMarker: String
     val edit: String
+    val duplicate: String
     val delete: String
 
     // Editor
@@ -75,6 +76,16 @@ interface Texts {
 
     /** Heading of the password form before the editor of a protected sheet opens. */
     fun editUnlockHeading(title: String): String
+
+    /** Heading of the password form before a protected sheet is duplicated. */
+    fun duplicateUnlockHeading(title: String): String
+    val duplicateUnlockHint: String
+
+    /** Title suggested for a copy of the sheet [title]. */
+    fun copyTitle(title: String): String
+
+    /** Appended to the path of a copy, e.g. `copy` gives `notes-copy`. Only a to z. */
+    val copyPathSuffix: String
 
     /** Label of a radio button in the protection fieldset. */
     fun protectionChoice(choice: ProtectionChoice): String

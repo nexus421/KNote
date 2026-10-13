@@ -16,6 +16,8 @@
 | GET    | `/_admin/edit/{id}`        | admin    |            | Editor, or the password form for a protected sheet.                            |
 | POST   | `/_admin/edit/{id}/unlock` | admin    | `unlock`   | Editor with the decrypted content.                                             |
 | POST   | `/_admin/edit/{id}`        | admin    |            | Saves, `303` to `/_admin`. `409` if the sheet changed meanwhile. With `action=preview`: the form again with the preview. |
+| GET    | `/_admin/duplicate/{id}`   | admin    |            | Editor for a new sheet filled with a copy, or the password form first.         |
+| POST   | `/_admin/duplicate/{id}/unlock` | admin | `unlock`   | Editor for a new sheet filled with a copy of the protected sheet.             |
 | GET    | `/_admin/delete/{id}`      | admin    |            | Confirmation page.                                                             |
 | POST   | `/_admin/delete/{id}`      | admin    |            | Deletes the sheet, `303` to `/_admin`.                                         |
 | GET    | `/{path}`                  | everyone |            | The rendered sheet, or the password form. `404` for unknown and invalid paths alike. |
