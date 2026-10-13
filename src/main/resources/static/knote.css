@@ -553,6 +553,45 @@ td.actions a + a {
     }
 }
 
+/* Printing: black on white, only the content */
+
+@media print {
+    :root {
+        color-scheme: light;
+        --fg: #000000;
+        --muted: #444444;
+        --line: #cccccc;
+        --code-bg: #f4f4f4;
+        --accent: #000000;
+    }
+
+    body {
+        background: none;
+        font-size: 11pt;
+    }
+
+    body::before, body::after, main::before, .site, .site-footer, .no-print, form {
+        display: none;
+    }
+
+    main {
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        box-shadow: none;
+    }
+
+    .markdown pre {
+        white-space: pre-wrap;
+    }
+
+    .markdown a {
+        text-decoration: underline;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     * {
         transition: none !important;
