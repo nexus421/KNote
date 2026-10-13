@@ -448,6 +448,26 @@ td.actions a + a {
     font-size: 0.85rem;
 }
 
+.sheet-meta form {
+    margin: 0;
+}
+
+button.link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    font-weight: normal;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+button.link:hover {
+    transform: none;
+    box-shadow: none;
+}
+
 /* Rendered Markdown */
 
 .markdown {

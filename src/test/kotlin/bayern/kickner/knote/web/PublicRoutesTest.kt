@@ -192,6 +192,61 @@ class PublicRoutesTest {
     }
 
     @Test
+    fun `a plain sheet links to its markdown file and the file is the raw markdown`() = testApplication {
+        val client = knoteApp(storeWithSheets())
+
+        val page = client.get("/einkauf").bodyAsText()
+        val file = client.get("/einkauf.md")
+
+        assertContains(page, "href=\"/einkauf.md\"")
+        assertEquals(HttpStatusCode.OK, file.status)
+        assertEquals("# Liste\n- Brot", file.bodyAsText())
+        assertEquals("text/markdown; charset=UTF-8", file.headers[HttpHeaders.ContentType])
+        assertEquals("attachment; filename=einkauf.md", file.headers[HttpHeaders.ContentDisposition])
+    }
+
+    @Test
+    fun `the markdown file of a protected sheet needs the password`() = testApplication {
+        val client = knoteApp(storeWithSheets())
+
+        val form = client.get("/privat/notiz.md").bodyAsText()
+        val wrong = client.unlock("privat/notiz.md", "wrong-password")
+        val file = client.unlock("privat/notiz.md", PASSWORD)
+
+        assertContains(form, "<form action=\"/privat/notiz.md\" method=\"post\">")
+        assertFalse(form.contains("geheimer Inhalt"))
+        assertEquals(HttpStatusCode.Forbidden, wrong.status)
+        assertEquals("geheimer Inhalt", file.bodyAsText())
+        assertEquals("attachment; filename=notiz.md", file.headers[HttpHeaders.ContentDisposition])
+        assertEquals("no-store", file.headers[HttpHeaders.CacheControl])
+    }
+
+    @Test
+    fun `an unlocked sheet offers the download with the password`() = testApplication {
+        val client = knoteApp(storeWithSheets())
+
+        val page = client.unlock("privat/notiz", PASSWORD).bodyAsText()
+
+        assertContains(page, "<form action=\"/privat/notiz.md\" method=\"post\" class=\"no-print\">")
+        assertContains(page, "name=\"password\" value=\"$PASSWORD\"")
+    }
+
+    @Test
+    fun `markdown downloads count against the password limit`() = testApplication {
+        val client = knoteApp(storeWithSheets(), testConfig(unlockAttemptsPerMinute = 1))
+
+        assertEquals(HttpStatusCode.Forbidden, client.unlock("privat/notiz.md", "wrong").status)
+        assertEquals(HttpStatusCode.TooManyRequests, client.unlock("privat/notiz.md", PASSWORD).status)
+    }
+
+    @Test
+    fun `unknown markdown files answer 404`() = testApplication {
+        val client = knoteApp(storeWithSheets())
+
+        listOf("/gibt-es-nicht.md", "/einkauf.md.md", "/.md").forEach { assertEquals(HttpStatusCode.NotFound, client.get(it).status, it) }
+    }
+
+    @Test
     fun `the health check answers ok without login`() = testApplication {
         val client = knoteApp()
 

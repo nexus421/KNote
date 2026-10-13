@@ -28,6 +28,7 @@ object EnglishTexts : Texts {
     override val damagedHeading = "Sheet damaged"
     override val damagedText = "The sheet cannot be read."
     override val lastChanged = "Last changed"
+    override val downloadMarkdown = "Download Markdown"
 
     override val sheets = "Sheets"
     override val newSheet = "New sheet"

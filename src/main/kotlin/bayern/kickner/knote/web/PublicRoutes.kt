@@ -12,7 +12,10 @@ import bayern.kickner.knote.markdown.renderMarkdown
 import bayern.kickner.knote.storage.Sheet
 import bayern.kickner.knote.storage.SheetContent
 import bayern.kickner.knote.storage.SheetStore
+import io.ktor.http.ContentDisposition
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.withCharset
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.plugins.ratelimit.RateLimitName
@@ -34,6 +37,9 @@ private const val TAG = "PublicRoutes"
 
 /** Liveness check for monitoring. Below `_`, so it can never collide with a sheet. */
 const val HEALTH_PATH = "/_health"
+
+/** Appended to a sheet path, it asks for the raw Markdown as a file. Sheet paths never contain a dot. */
+const val MARKDOWN_SUFFIX = ".md"
 
 /** Rate limit of every password attempt, public and admin, keyed by client IP. */
 val UNLOCK_RATE_LIMIT = RateLimitName("unlock")
@@ -59,38 +65,73 @@ fun Route.startPage(config: AppConfig, clock: () -> Long) {
 
 /**
  * `GET /{path...}` shows a sheet, or its password form if it is protected. `POST /{path...}` unlocks it: the
- * response is the rendered sheet itself, there is no session (a reload asks for the password again). Unknown and
- * invalid paths both answer 404, the lookup only ever goes through [store].
+ * response is the rendered sheet itself, there is no session (a reload asks for the password again). With
+ * [MARKDOWN_SUFFIX] appended, both answer the raw Markdown as a file instead. Unknown and invalid paths answer 404,
+ * the lookup only ever goes through [store].
  *
  * @param zone Time zone of the "last changed" line.
  */
 fun Route.sheetRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, zone: ZoneId) {
     get("/{path...}") {
-        val sheet = store.find(call.sheetPath()) ?: return@get call.respondNotFound()
+        val request = call.sheetRequest()
+        val sheet = store.find(request.path) ?: return@get call.respondNotFound()
+        val t = call.texts
         when (val content = sheet.content) {
-            is SheetContent.Plain -> call.respondPage(title = sheet.title) { sheetView(call.texts, sheet.title, renderMarkdown(content.markdown), formatTime(sheet.updated, zone)) }
-            is SheetContent.Encrypted -> call.respondPage(title = sheet.title, narrow = true) { unlockForm(call.texts, sheet.title, call.texts.lockedHint, "/${sheet.path}") }
+            is SheetContent.Plain ->
+                if (request.download) call.respondMarkdownFile(sheet, content.markdown)
+                else call.respondPage(title = sheet.title) {
+                    sheetView(t, sheet.title, renderMarkdown(content.markdown), formatTime(sheet.updated, zone), MarkdownDownload.Link(sheet.url(download = true)))
+                }
+
+            is SheetContent.Encrypted -> call.respondPage(title = sheet.title, narrow = true) {
+                unlockForm(t, sheet.title, t.lockedHint, sheet.url(request.download))
+            }
         }
     }
 
     rateLimit(UNLOCK_RATE_LIMIT) {
         post("/{path...}") {
-            val sheet = store.find(call.sheetPath()) ?: return@post call.respondNotFound()
-            if (sheet.isProtected.not()) return@post call.respondSeeOther("/${sheet.path}")
+            val request = call.sheetRequest()
+            val sheet = store.find(request.path) ?: return@post call.respondNotFound()
+            if (sheet.isProtected.not()) return@post call.respondSeeOther(sheet.url(request.download))
 
+            val t = call.texts
             val password = call.receiveParameters()["password"].orEmpty()
             when (val result = gate.run { decryptContent(sheet.content, password) }) {
                 is ResultOf2.Success -> {
                     call.response.header(HttpHeaders.CacheControl, "no-store")
-                    call.respondPage(title = sheet.title) { sheetView(call.texts, sheet.title, renderMarkdown(result.value), formatTime(sheet.updated, zone)) }
+                    if (request.download) call.respondMarkdownFile(sheet, result.value)
+                    else call.respondPage(title = sheet.title) {
+                        val download = MarkdownDownload.Form(sheet.url(download = true), password)
+                        sheetView(t, sheet.title, renderMarkdown(result.value), formatTime(sheet.updated, zone), download)
+                    }
                 }
 
                 is ResultOf2.Failure -> call.respondUnlockFailure(sheet, result.value, config) {
-                    unlockForm(call.texts, sheet.title, call.texts.lockedHint, "/${sheet.path}", call.texts.wrongPassword)
+                    unlockForm(t, sheet.title, t.lockedHint, sheet.url(request.download), t.wrongPassword)
                 }
             }
         }
     }
+}
+
+/** A requested sheet path and whether the raw Markdown file was asked for. */
+private data class SheetRequest(val path: String, val download: Boolean)
+
+/** The sheet path from the tailcard, segments joined with `/`, without [MARKDOWN_SUFFIX]. Empty for `/`. */
+private fun ApplicationCall.sheetRequest(): SheetRequest {
+    val requested = parameters.getAll("path").orEmpty().joinToString("/")
+    return SheetRequest(requested.removeSuffix(MARKDOWN_SUFFIX), requested.endsWith(MARKDOWN_SUFFIX))
+}
+
+/** Address of the sheet page, or of its Markdown file with [download]. */
+private fun Sheet.url(download: Boolean): String = "/$path" + if (download) MARKDOWN_SUFFIX else ""
+
+/** Answers [markdown] as a file named after the last path segment, e.g. `knote.md` for `projects/knote`. */
+private suspend fun ApplicationCall.respondMarkdownFile(sheet: Sheet, markdown: String) {
+    val fileName = sheet.path.substringAfterLast('/') + MARKDOWN_SUFFIX
+    response.header(HttpHeaders.ContentDisposition, ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, fileName).toString())
+    respondText(markdown, ContentType("text", "markdown").withCharset(Charsets.UTF_8))
 }
 
 /**
@@ -114,5 +155,4 @@ internal suspend fun ApplicationCall.respondUnlockFailure(sheet: Sheet, error: U
     }
 }
 
-/** The sheet path from the tailcard, segments joined with `/`. Empty for `/`. */
-private fun ApplicationCall.sheetPath(): String = parameters.getAll("path").orEmpty().joinToString("/")
+

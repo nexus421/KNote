@@ -20,6 +20,8 @@
 | POST   | `/_admin/delete/{id}`      | admin    |            | Deletes the sheet, `303` to `/_admin`.                                         |
 | GET    | `/{path}`                  | everyone |            | The rendered sheet, or the password form. `404` for unknown and invalid paths alike. |
 | POST   | `/{path}`                  | everyone | `unlock`   | Field `password`. The rendered sheet (`200`), or the form with `403`.          |
+| GET    | `/{path}.md`               | everyone |            | The raw Markdown as a file. For a protected sheet the password form.           |
+| POST   | `/{path}.md`               | everyone | `unlock`   | Field `password`. The raw Markdown of a protected sheet as a file.            |
 
 Admin pages address a sheet by its id, so sheet paths containing slashes never collide with `/edit` or `/delete`.
 System paths start with `_`, which a sheet path can never contain. A sheet path consists of segments of `a` to `z`,
@@ -47,6 +49,9 @@ the content is lost. The admin can still delete the sheet.
 
 All PBKDF2 derivations run off the request threads and at most `cryptoParallelism` at once, so requests from many
 IPs cannot occupy every core.
+
+Every sheet page shows when the sheet was last changed and offers its Markdown as a file. Printing a sheet uses a
+print layout: black on white, without header, footer and background.
 
 ## Editor
 

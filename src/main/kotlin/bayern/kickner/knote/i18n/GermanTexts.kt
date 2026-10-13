@@ -28,6 +28,7 @@ object GermanTexts : Texts {
     override val damagedHeading = "Seite beschädigt"
     override val damagedText = "Die Seite kann nicht gelesen werden."
     override val lastChanged = "Zuletzt geändert"
+    override val downloadMarkdown = "Markdown herunterladen"
 
     override val sheets = "Seiten"
     override val newSheet = "Neue Seite"

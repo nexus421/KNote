@@ -153,16 +153,33 @@ fun MAIN.landing(t: Texts) {
     }
 }
 
+/** How a rendered sheet offers its Markdown as a file. */
+sealed interface MarkdownDownload {
+    /** A plain link, for an unprotected sheet. */
+    data class Link(val href: String) : MarkdownDownload
+
+    /** A form that posts the password again, for an unlocked protected sheet. The page is never cached. */
+    data class Form(val action: String, val password: String) : MarkdownDownload
+}
+
 /**
- * A rendered sheet with the time of its last change below it. [html] must come from `renderMarkdown`.
+ * A rendered sheet with the time of its last change and the Markdown download below it. [html] must come from
+ * `renderMarkdown`.
  *
  * @param changed The last change, already formatted with [formatTime].
  */
-fun MAIN.sheetView(t: Texts, title: String, html: String, changed: String) {
+fun MAIN.sheetView(t: Texts, title: String, html: String, changed: String, download: MarkdownDownload) {
     h1 { +title }
     markdownArticle(html)
     div(classes = "sheet-meta") {
         span(classes = "muted") { +"${t.lastChanged}: $changed" }
+        when (download) {
+            is MarkdownDownload.Link -> a(href = download.href, classes = "no-print") { +t.downloadMarkdown }
+            is MarkdownDownload.Form -> form(action = download.action, method = FormMethod.post, classes = "no-print") {
+                hiddenInput(name = "password") { value = download.password }
+                button(type = ButtonType.submit, classes = "link") { +t.downloadMarkdown }
+            }
+        }
     }
 }
 

@@ -38,6 +38,7 @@ interface Texts {
     val damagedHeading: String
     val damagedText: String
     val lastChanged: String
+    val downloadMarkdown: String
 
     // Overview
     val sheets: String
