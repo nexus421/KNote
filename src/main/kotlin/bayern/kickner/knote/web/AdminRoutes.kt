@@ -45,6 +45,8 @@ private const val TAG = "AdminRoutes"
  * again. The save therefore never tells whether a password is right, only the rate limited unlock does. The
  * preview button posts the same form to the same URL and gets it back with the rendered Markdown, nothing is saved.
  *
+ * Disabling hides a sheet from the public (404) without deleting it, enabling shows it again.
+ *
  * Duplicating opens the editor for a new sheet, filled with the content of the original, a copy title and a free
  * copy path. Nothing is saved before "create". A protected original needs its password first, and the copy keeps
  * that password unless the fields are cleared.
@@ -209,6 +211,21 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, unlockProof: UnlockPr
                             duplicateUnlockForm(call.texts, sheet, call.texts.wrongPassword)
                         }
                     }
+                }
+            }
+
+            post("/toggle/{id}") {
+                val sheet = store.findById(call.parameters["id"].orEmpty()) ?: return@post call.respondNotFound()
+                // Only overview URLs, so the field cannot redirect anywhere else
+                val back = call.receiveParameters()["back"]?.takeIf { it == ADMIN_PATH || it.startsWith("$ADMIN_PATH?") } ?: ADMIN_PATH
+                // Disabling is no change of the content, the time of the last change stays
+                when (val saved = store.save(sheet.copy(enabled = sheet.enabled.not()), expectedUpdated = sheet.updated)) {
+                    is ResultOf2.Success -> {
+                        staticLog(KLogger.Level.INFO, TAG) { "Sheet ${if (saved.value.enabled) "enabled" else "disabled"} id=${sheet.id} path=${sheet.path}" }
+                        call.respondSeeOther(back)
+                    }
+
+                    is ResultOf2.Failure -> call.respondStoreError(saved.value) { call.respondConflict() }
                 }
             }
 

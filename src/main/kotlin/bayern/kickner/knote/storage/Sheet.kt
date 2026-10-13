@@ -24,6 +24,8 @@ fun isValidSheetPath(path: String): Boolean = path.length <= MAX_PATH_LENGTH && 
  * @property createdBy OIDC `sub` of the admin who created the sheet.
  * @property created Creation time as Unix milliseconds.
  * @property updated Last change as Unix milliseconds. Doubles as optimistic lock when saving an edited sheet.
+ * @property enabled False hides the sheet from the public, it answers 404 but stays in the admin area. Files from
+ * before this field count as enabled, and an enabled sheet does not write the field at all.
  */
 @Serializable
 data class Sheet(
@@ -34,6 +36,7 @@ data class Sheet(
     val createdBy: String,
     val created: Long,
     val updated: Long,
+    val enabled: Boolean = true,
 ) {
     /** True if the content is encrypted with a sheet password. */
     val isProtected: Boolean get() = content is SheetContent.Encrypted

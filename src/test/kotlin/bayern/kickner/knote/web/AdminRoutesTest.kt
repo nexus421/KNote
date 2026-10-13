@@ -140,6 +140,47 @@ class AdminRoutesTest {
     }
 
     @Test
+    fun `a disabled sheet is hidden from the public and can be enabled again`() = testApplication {
+        val sheet = plainSheet("einkauf")
+        val admin = admin(sheet)
+
+        val disable = admin.post("/_admin/toggle/${sheet.id}", "back" to "/_admin?sort=title")
+        val overview = admin.get("/_admin").bodyAsText()
+        val statuses = listOf(admin.client.get("/einkauf"), admin.client.get("/einkauf.md"), admin.client.submitForm("/einkauf")).map { it.status }
+
+        assertEquals(HttpStatusCode.SeeOther, disable.status)
+        assertEquals("/_admin?sort=title", disable.headers[HttpHeaders.Location])
+        assertEquals(false, admin.store.find("einkauf")?.enabled)
+        assertEquals(sheet.updated, admin.store.find("einkauf")?.updated)
+        assertEquals(List(3) { HttpStatusCode.NotFound }, statuses)
+        assertContains(overview, "<tr class=\"disabled\">")
+        assertContains(overview, ">Enable</button>")
+
+        admin.post("/_admin/toggle/${sheet.id}")
+
+        assertEquals(HttpStatusCode.OK, admin.client.get("/einkauf").status)
+    }
+
+    @Test
+    fun `toggling only redirects back to the overview`() = testApplication {
+        val sheet = plainSheet("einkauf")
+        val admin = admin(sheet)
+
+        val response = admin.post("/_admin/toggle/${sheet.id}", "back" to "https://evil.example/_admin")
+
+        assertEquals("/_admin", response.headers[HttpHeaders.Location])
+    }
+
+    @Test
+    fun `an enabled sheet file stays as it was`() {
+        val dir = tempDir()
+        val sheet = plainSheet("einkauf")
+        emptyStore(dir).save(sheet)
+
+        assertFalse(dir.resolve("${sheet.id}.json").toFile().readText().contains("enabled"))
+    }
+
+    @Test
     fun `the search filters by path and title ignoring case`() = testApplication {
         val admin = admin(plainSheet("einkauf", title = "Wochenmarkt"), plainSheet("projekte/knote", title = "KNote"))
 

@@ -488,6 +488,21 @@ td.actions a.danger {
     color: var(--danger);
 }
 
+td.actions form {
+    display: inline;
+    margin: 0 0 0 0.9rem;
+}
+
+tr.disabled td {
+    color: var(--muted);
+}
+
+.badge.off {
+    margin-left: 0.5rem;
+    background: var(--hover);
+    color: var(--muted);
+}
+
 .badge {
     display: inline-block;
     padding: 0.05rem 0.6rem;

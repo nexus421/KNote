@@ -63,8 +63,8 @@ fun Route.startPage(config: AppConfig, clock: () -> Long) {
 /**
  * `GET /{path...}` shows a sheet, or its password form if it is protected. `POST /{path...}` unlocks it: the
  * response is the rendered sheet itself, there is no session (a reload asks for the password again). With
- * [MARKDOWN_SUFFIX] appended, both answer the raw Markdown as a file instead. Unknown and invalid paths answer 404,
- * the lookup only ever goes through [store].
+ * [MARKDOWN_SUFFIX] appended, both answer the raw Markdown as a file instead. Unknown, invalid and disabled paths
+ * answer 404, the lookup only ever goes through [store].
  *
  * A logged in admin also gets a link to the editor. Such a page is never cached, it differs from the public one.
  *
@@ -74,7 +74,7 @@ fun Route.startPage(config: AppConfig, clock: () -> Long) {
 fun Route.sheetRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, zone: ZoneId, clock: () -> Long) {
     get("/{path...}") {
         val request = call.sheetRequest()
-        val sheet = store.find(request.path) ?: return@get call.respondNotFound()
+        val sheet = store.find(request.path)?.takeIf { it.enabled } ?: return@get call.respondNotFound()
         val t = call.texts
         when (val content = sheet.content) {
             is SheetContent.Plain ->
@@ -95,7 +95,7 @@ fun Route.sheetRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, zo
     rateLimit(UNLOCK_RATE_LIMIT) {
         post("/{path...}") {
             val request = call.sheetRequest()
-            val sheet = store.find(request.path) ?: return@post call.respondNotFound()
+            val sheet = store.find(request.path)?.takeIf { it.enabled } ?: return@post call.respondNotFound()
             if (sheet.isProtected.not()) return@post call.respondSeeOther(sheet.url(request.download))
 
             val t = call.texts

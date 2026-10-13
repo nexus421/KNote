@@ -279,7 +279,7 @@ fun MAIN.overview(t: Texts, sheets: List<Sheet>, query: String, order: SheetOrde
 }
 
 /** The overview URL with [order] and [query], leaving out what is default. */
-private fun overviewHref(order: SheetOrder, query: String): String {
+internal fun overviewHref(order: SheetOrder, query: String): String {
     val parameters = listOfNotNull(
         "sort=${order.param}".takeIf { order != SheetOrder.PATH },
         "q=${query.encodeURLParameter()}".takeIf { query.isNotEmpty() },
@@ -310,14 +310,25 @@ private fun FlowContent.sheetTable(t: Texts, sheets: List<Sheet>, query: String,
         }
         tbody {
             sheets.forEach { sheet ->
-                tr {
-                    td { a(href = "/${sheet.path}") { +sheet.path } }
+                tr(classes = if (sheet.enabled) null else "disabled") {
+                    td {
+                        // A disabled sheet answers 404, a link would lead nowhere
+                        if (sheet.enabled) a(href = "/${sheet.path}") { +sheet.path }
+                        else {
+                            +sheet.path
+                            span(classes = "badge off") { +t.disabledMarker }
+                        }
+                    }
                     td { +sheet.title }
                     td { if (sheet.isProtected) span(classes = "badge") { +t.protectedMarker } }
                     td(classes = "muted") { +formatTime(sheet.updated) }
                     td(classes = "actions") {
                         a(href = "$ADMIN_PATH/edit/${sheet.id}") { +t.edit }
                         a(href = "$ADMIN_PATH/duplicate/${sheet.id}") { +t.duplicate }
+                        form(action = "$ADMIN_PATH/toggle/${sheet.id}", method = FormMethod.post) {
+                            hiddenInput(name = "back") { value = overviewHref(order, query) }
+                            button(type = ButtonType.submit, classes = "link") { +if (sheet.enabled) t.disable else t.enable }
+                        }
                         a(href = "$ADMIN_PATH/delete/${sheet.id}", classes = "danger") { +t.delete }
                     }
                 }

@@ -57,6 +57,9 @@ interface Texts {
     val columnChanged: String
     val columnActions: String
     val protectedMarker: String
+    val disabledMarker: String
+    val disable: String
+    val enable: String
     val edit: String
     val duplicate: String
     val delete: String

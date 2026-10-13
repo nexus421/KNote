@@ -18,6 +18,7 @@
 | POST   | `/_admin/edit/{id}`        | admin    |            | Saves, `303` to `/_admin`. `409` if the sheet changed meanwhile. With `action=preview`: the form again with the preview. |
 | GET    | `/_admin/duplicate/{id}`   | admin    |            | Editor for a new sheet filled with a copy, or the password form first.         |
 | POST   | `/_admin/duplicate/{id}/unlock` | admin | `unlock`   | Editor for a new sheet filled with a copy of the protected sheet.             |
+| POST   | `/_admin/toggle/{id}`      | admin    |            | Disables or enables the sheet, `303` back to the overview.                     |
 | GET    | `/_admin/delete/{id}`      | admin    |            | Confirmation page.                                                             |
 | POST   | `/_admin/delete/{id}`      | admin    |            | Deletes the sheet, `303` to `/_admin`.                                         |
 | GET    | `/{path}`                  | everyone |            | The rendered sheet, or the password form. `404` for unknown and invalid paths alike. |
@@ -52,6 +53,9 @@ the content is lost. The admin can still delete the sheet.
 
 All PBKDF2 derivations run off the request threads and at most `cryptoParallelism` at once, so requests from many
 IPs cannot occupy every core.
+
+A disabled sheet answers 404 to the public, its Markdown file too, but stays in the admin area and can be enabled
+again. Disabling does not change the time of the last change.
 
 Every sheet page shows when the sheet was last changed and offers its Markdown as a file. Printing a sheet uses a
 print layout: black on white, without header, footer and background.
