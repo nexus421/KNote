@@ -1,5 +1,6 @@
 package bayern.kickner.knote.i18n
 
+import bayern.kickner.knote.settings.StartPageList
 import bayern.kickner.knote.web.ProtectionChoice
 
 /** German texts. */
@@ -85,6 +86,17 @@ object GermanTexts : Texts {
     }
 
     override fun passwordHint(minLength: Int) = "Mindestens $minLength Zeichen. Geht das Passwort verloren, ist auch der Inhalt verloren."
+
+    override val settings = "Einstellungen"
+    override val startPageListLegend = "Die Startseite zeigt"
+    override val startPageListHint = "Deaktivierte Seiten erscheinen nie. Von geschützten Seiten sind nur Titel und Pfad sichtbar, der Inhalt bleibt gesperrt."
+    override val saved = "Gespeichert."
+    override fun startPageList(choice: StartPageList) = when (choice) {
+        StartPageList.NONE -> "keine Seiten, nur die Anmeldung"
+        StartPageList.UNPROTECTED -> "ungeschützte Seiten"
+        StartPageList.PROTECTED -> "geschützte Seiten"
+        StartPageList.ALL -> "alle Seiten"
+    }
 
     override val deleteSheet = "Seite löschen"
     override val deleteQuestionStart = "Seite "

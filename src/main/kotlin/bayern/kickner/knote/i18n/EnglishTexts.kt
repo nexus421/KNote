@@ -1,5 +1,6 @@
 package bayern.kickner.knote.i18n
 
+import bayern.kickner.knote.settings.StartPageList
 import bayern.kickner.knote.web.ProtectionChoice
 
 /** English texts, the default. */
@@ -85,6 +86,17 @@ object EnglishTexts : Texts {
     }
 
     override fun passwordHint(minLength: Int) = "At least $minLength characters. If the password is lost, the content is lost too."
+
+    override val settings = "Settings"
+    override val startPageListLegend = "The start page lists"
+    override val startPageListHint = "Disabled sheets never appear. Of protected sheets only title and path are visible, their content stays locked."
+    override val saved = "Saved."
+    override fun startPageList(choice: StartPageList) = when (choice) {
+        StartPageList.NONE -> "no sheets, only the login"
+        StartPageList.UNPROTECTED -> "unprotected sheets"
+        StartPageList.PROTECTED -> "protected sheets"
+        StartPageList.ALL -> "all sheets"
+    }
 
     override val deleteSheet = "Delete sheet"
     override val deleteQuestionStart = "Really delete sheet "

@@ -108,6 +108,18 @@ class MainTest {
     }
 
     @Test
+    fun `a broken settings file exits with 65`() {
+        val directory = directoryWithConfig()
+        File(directory, "data/sheets").mkdirs()
+        File(directory, "data/settings.json").writeText("{")
+
+        val run = knote("check", workingDirectory = directory)
+
+        assertEquals(65, run.exitCode, run.stderr)
+        assertContains(run.stderr, "settings.json")
+    }
+
+    @Test
     fun `a failed start exits with 1 so systemd restarts`() {
         ServerSocket(0, 50, InetAddress.getLoopbackAddress()).use { taken ->
             val run = knote(workingDirectory = directoryWithConfig(configJson(listenPort = taken.localPort)))

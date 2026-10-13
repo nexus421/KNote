@@ -207,6 +207,35 @@ class AdminRoutesTest {
     }
 
     @Test
+    fun `the settings choose which sheets the start page lists`() = testApplication {
+        val admin = admin(plainSheet("offen", title = "Offene Liste"), protectedSheet("privat"), plainSheet("aus").copy(enabled = false))
+
+        val before = admin.get("/_admin/settings").bodyAsText()
+        val save = admin.post("/_admin/settings", "startPageList" to "all")
+        val after = admin.get("/_admin/settings?saved").bodyAsText()
+        val landing = admin.client.get("/").bodyAsText()
+
+        assertContains(before, "value=\"none\" checked")
+        assertEquals(HttpStatusCode.SeeOther, save.status)
+        assertEquals("/_admin/settings?saved", save.headers[HttpHeaders.Location])
+        assertContains(after, "value=\"all\" checked")
+        assertContains(after, "Saved.")
+        assertContains(landing, "<a href=\"/offen\">Offene Liste</a>")
+        assertContains(landing, "href=\"/privat\"")
+        assertFalse(landing.contains("href=\"/aus\""))
+    }
+
+    @Test
+    fun `an unknown setting is rejected and nothing changes`() = testApplication {
+        val admin = admin()
+
+        val response = admin.post("/_admin/settings", "startPageList" to "everything")
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertContains(admin.get("/_admin/settings").bodyAsText(), "value=\"none\" checked")
+    }
+
+    @Test
     fun `the search filters by path and title ignoring case`() = testApplication {
         val admin = admin(plainSheet("einkauf", title = "Wochenmarkt"), plainSheet("projekte/knote", title = "KNote"))
 

@@ -21,6 +21,8 @@
 | POST   | `/_admin/toggle/{id}`      | admin    |            | Disables or enables the sheet, `303` back to the overview.                     |
 | GET    | `/_admin/qr/{id}`          | admin    |            | QR code of the public address of the sheet, with download.                     |
 | GET    | `/_admin/qr/{id}/qr.png`   | admin    |            | The QR code as PNG, with the K logo in the middle.                             |
+| GET    | `/_admin/settings`         | admin    |            | Settings: which sheets the start page lists.                                   |
+| POST   | `/_admin/settings`         | admin    |            | Field `startPageList` (`none`, `unprotected`, `protected`, `all`), `303` back. |
 | GET    | `/_admin/delete/{id}`      | admin    |            | Confirmation page.                                                             |
 | POST   | `/_admin/delete/{id}`      | admin    |            | Deletes the sheet, `303` to `/_admin`.                                         |
 | GET    | `/{path}`                  | everyone |            | The rendered sheet, or the password form. `404` for unknown and invalid paths alike. |
@@ -41,6 +43,11 @@ change is written to a temp file in the same directory and moved over the old fi
 applied in memory. At startup every file is checked: unknown keys, a file name that does not match the id, an
 invalid path and a path used twice are errors (exit code 65). Leftover `*.tmp` files are ignored. If the directory
 does not exist yet, the first start creates it with an English example sheet at `/example`.
+
+Settings made in the admin area live in `<dataDir>/settings.json`, written the same atomic way. A missing file
+means the defaults, a broken one stops the start with exit code 65. The start page lists no sheets by default. In
+the settings it can list the unprotected, the protected or all sheets, disabled ones never. Of a protected sheet only
+title and path are shown.
 
 ## Protected sheets
 

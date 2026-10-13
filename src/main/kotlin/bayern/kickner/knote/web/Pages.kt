@@ -6,6 +6,7 @@ import bayern.kickner.knote.auth.LOGIN_PATH
 import bayern.kickner.knote.auth.LOGOUT_PATH
 import bayern.kickner.knote.i18n.Texts
 import bayern.kickner.knote.i18n.texts
+import bayern.kickner.knote.settings.StartPageList
 import bayern.kickner.knote.storage.MAX_PATH_LENGTH
 import bayern.kickner.knote.storage.Sheet
 import io.ktor.http.HttpHeaders
@@ -167,8 +168,12 @@ suspend fun ApplicationCall.respondSeeOther(location: String) {
 suspend fun ApplicationCall.respondNotFound() =
     respondMessage(HttpStatusCode.NotFound, texts.notFoundHeading, texts.notFoundText)
 
-/** Start page for visitors without admin login. */
-fun MAIN.landing(t: Texts) {
+/**
+ * Start page for visitors without admin login.
+ *
+ * @param listed Sheets to list below the login, as chosen in the settings. Empty shows no list.
+ */
+fun MAIN.landing(t: Texts, listed: List<Sheet>) {
     div(classes = "hero") {
         img(src = LOGO_PATH, alt = "") {
             width = "112"
@@ -177,6 +182,47 @@ fun MAIN.landing(t: Texts) {
         h1 { +"KNote" }
         p { +t.landingText }
         p { a(href = LOGIN_PATH, classes = "button") { +t.logIn } }
+    }
+    if (listed.isNotEmpty()) nav(classes = "sheet-list") {
+        h2 { +t.sheets }
+        ul {
+            listed.forEach { sheet ->
+                li {
+                    a(href = "/${sheet.path}") { +sheet.title }
+                    if (sheet.isProtected) span(classes = "badge") { +t.protectedMarker }
+                    span(classes = "muted path") { +"/${sheet.path}" }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The settings page: which sheets the start page lists.
+ *
+ * @param saved Shows a confirmation after the redirect of a save.
+ */
+fun MAIN.settingsPage(t: Texts, current: StartPageList, saved: Boolean) {
+    h1 { +t.settings }
+    if (saved) p(classes = "success") { +t.saved }
+    form(action = "$ADMIN_PATH/settings", method = FormMethod.post) {
+        fieldSet {
+            legend { +t.startPageListLegend }
+            StartPageList.entries.forEach { choice ->
+                label(classes = "choice") {
+                    radioInput(name = "startPageList") {
+                        value = choice.name.lowercase()
+                        checked = choice == current
+                    }
+                    +" ${t.startPageList(choice)}"
+                }
+            }
+            p(classes = "hint") { +t.startPageListHint }
+        }
+        div(classes = "actions") {
+            submitInput { value = t.save }
+            a(href = ADMIN_PATH) { +t.toOverview }
+        }
     }
 }
 
@@ -284,6 +330,7 @@ fun MAIN.overview(t: Texts, sheets: List<Sheet>, query: String, order: SheetOrde
         h1 { +t.sheets }
         if (adminName.isNotBlank()) span(classes = "muted who") { +t.loggedInAs(adminName) }
         a(href = "$ADMIN_PATH/new", classes = "button") { +t.newSheet }
+        a(href = "$ADMIN_PATH/settings", classes = "button secondary") { +t.settings }
         form(action = LOGOUT_PATH, method = FormMethod.post) { submitInput(classes = "secondary") { value = t.logOut } }
     }
     form(action = ADMIN_PATH, method = FormMethod.get, classes = "search") {

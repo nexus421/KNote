@@ -14,6 +14,8 @@ import bayern.kickner.knote.i18n.Texts
 import bayern.kickner.knote.i18n.texts
 import bayern.kickner.knote.markdown.renderMarkdown
 import bayern.kickner.knote.qr.qrCodePng
+import bayern.kickner.knote.settings.SettingsStore
+import bayern.kickner.knote.settings.StartPageList
 import bayern.kickner.knote.storage.Sheet
 import bayern.kickner.knote.storage.SheetContent
 import bayern.kickner.knote.storage.SheetStore
@@ -56,11 +58,20 @@ private const val TAG = "AdminRoutes"
  * copy path. Nothing is saved before "create". A protected original needs its password first, and the copy keeps
  * that password unless the fields are cleared.
  *
+ * @param settings The settings changed on the settings page.
  * @param unlockProof Issues and checks the proof that the password of a protected sheet is known.
  * @param clock Current time in Unix milliseconds, injectable for tests.
  * @param zone Time zone of the timestamps in the overview.
  */
-fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, unlockProof: UnlockProof, config: AppConfig, clock: () -> Long, zone: ZoneId) {
+fun Route.adminRoutes(
+    store: SheetStore,
+    settings: SettingsStore,
+    gate: CryptoGate,
+    unlockProof: UnlockProof,
+    config: AppConfig,
+    clock: () -> Long,
+    zone: ZoneId,
+) {
     route(ADMIN_PATH) {
         install(CSRF) { onlyFrom(config.publicBaseUrl) }
         install(NoStore)
@@ -242,6 +253,27 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, unlockProof: UnlockPr
             get("/qr/{id}/qr.png") {
                 val sheet = store.findById(call.parameters["id"].orEmpty()) ?: return@get call.respondNotFound()
                 call.respondBytes(qrCodePng("${config.publicBaseUrl}/${sheet.path}"), ContentType.Image.PNG)
+            }
+
+            get("/settings") {
+                val saved = call.request.queryParameters["saved"] != null
+                call.respondPage(title = call.texts.settings, narrow = true) { settingsPage(call.texts, settings.current.startPageList, saved) }
+            }
+
+            post("/settings") {
+                val value = call.receiveParameters()["startPageList"]
+                val choice = StartPageList.entries.firstOrNull { it.name.lowercase() == value }
+                    ?: return@post call.respondMessage(HttpStatusCode.BadRequest, call.texts.errorHeading, call.texts.requestFailedText)
+                settings.save(settings.current.copy(startPageList = choice)).fold(
+                    {
+                        staticLog(KLogger.Level.INFO, TAG) { "Settings changed: startPageList=${value}" }
+                        call.respondSeeOther("$ADMIN_PATH/settings?saved")
+                    },
+                    {
+                        staticLog(KLogger.Level.ERROR, TAG) { "Could not write the settings: ${it.message}" }
+                        call.respondMessage(HttpStatusCode.InternalServerError, call.texts.errorHeading, call.texts.saveFailedText)
+                    },
+                )
             }
 
             get("/delete/{id}") {

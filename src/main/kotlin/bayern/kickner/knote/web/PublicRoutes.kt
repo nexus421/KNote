@@ -9,6 +9,7 @@ import bayern.kickner.knote.crypto.UnlockError
 import bayern.kickner.knote.crypto.decryptContent
 import bayern.kickner.knote.i18n.texts
 import bayern.kickner.knote.markdown.renderMarkdown
+import bayern.kickner.knote.settings.SettingsStore
 import bayern.kickner.knote.storage.Sheet
 import bayern.kickner.knote.storage.SheetContent
 import bayern.kickner.knote.storage.SheetStore
@@ -49,14 +50,17 @@ fun Route.healthRoute() {
 
 /**
  * `GET /`: an admin with a valid login goes straight to the overview, everyone else sees the start page with the
- * login button. The start page never redirects to the provider on its own, so a logout really ends at it.
+ * login button and the sheets chosen in the settings. The start page never redirects to the provider on its own,
+ * so a logout really ends at it.
  *
  * @param clock Current time in Unix milliseconds, injectable for tests.
  */
-fun Route.startPage(config: AppConfig, clock: () -> Long) {
+fun Route.startPage(store: SheetStore, settings: SettingsStore, config: AppConfig, clock: () -> Long) {
     get("/") {
-        if (call.hasAdminLogin(config, clock)) call.respondRedirect(ADMIN_PATH)
-        else call.respondPage(title = "KNote", narrow = true, startPage = true) { landing(call.texts) }
+        if (call.hasAdminLogin(config, clock)) return@get call.respondRedirect(ADMIN_PATH)
+        val choice = settings.current.startPageList
+        val listed = store.all.filter { choice.includes(it) }
+        call.respondPage(title = "KNote", narrow = true, startPage = true) { landing(call.texts, listed) }
     }
 }
 

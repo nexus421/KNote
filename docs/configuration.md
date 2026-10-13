@@ -15,7 +15,7 @@ Without `check` or `key`, KNote starts the server. Any other argument is rejecte
 | `0`       | `check`: config and sheets are valid. `key`: key printed.                                  |
 | `1`       | The server could not start, e.g. the port is taken. systemd retries.                       |
 | `64`      | Unknown command line argument. systemd does not retry.                                     |
-| `65`      | At least one sheet file is broken. The log lists every problem. systemd does not retry.    |
+| `65`      | A sheet file or `settings.json` is broken. The log lists every problem. systemd does not retry. |
 | `78`      | The config file is missing or invalid. systemd does not retry.                             |
 | `143`     | The JVM's exit code after SIGTERM (`systemctl stop`). A clean stop, not a failure.         |
 

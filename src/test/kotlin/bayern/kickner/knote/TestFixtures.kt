@@ -5,6 +5,7 @@ import bayern.kickner.knote.auth.STATE_COOKIE
 import bayern.kickner.knote.config.AppConfig
 import bayern.kickner.knote.config.OidcConfig
 import bayern.kickner.knote.crypto.CryptoGate
+import bayern.kickner.knote.settings.SettingsStore
 import bayern.kickner.knote.storage.Sheet
 import bayern.kickner.knote.storage.SheetContent
 import bayern.kickner.knote.storage.SheetStore
@@ -73,6 +74,10 @@ internal fun testConfig(
 
 internal fun tempDir(): Path = Files.createTempDirectory("knote-test").also { it.toFile().deleteOnExit() }
 
+/** Settings in a fresh temporary directory, with the defaults. */
+internal fun testSettings(file: Path = tempDir().resolve("settings.json")): SettingsStore =
+    (SettingsStore.load(file) as ResultOf2.Success).value
+
 internal fun emptyStore(dir: Path = tempDir()): SheetStore = (SheetStore.load(dir) as ResultOf2.Success).value
 
 internal fun plainSheet(path: String, markdown: String = "# $path", title: String = path, updated: Long = FIXED_NOW) =
@@ -94,6 +99,7 @@ internal fun ApplicationTestBuilder.knoteApp(
     config: AppConfig = testConfig(),
     clock: TestClock = TestClock(),
     userinfoBody: String = """{"sub": "$ADMIN_SUB"}""",
+    settings: SettingsStore = testSettings(),
 ): HttpClient {
     externalServices {
         hosts(PROVIDER) {
@@ -114,7 +120,7 @@ internal fun ApplicationTestBuilder.knoteApp(
         }
     }
     val providerClient = createClient { }
-    application { knote(config, store, providerClient, CryptoGate(1), clock, ZoneId.of("Europe/Berlin")) }
+    application { knote(config, store, settings, providerClient, CryptoGate(1), clock, ZoneId.of("Europe/Berlin")) }
     return createClient { followRedirects = false }
 }
 

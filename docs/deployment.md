@@ -83,5 +83,6 @@ With a protected sheet `test/locked`:
 
 ## Backup and update
 
-Sheets are plain JSON files in `<dataDir>/sheets`, protected sheets stay encrypted in every backup. To update,
+Sheets are plain JSON files in `<dataDir>/sheets`, the admin settings are `<dataDir>/settings.json`. Protected
+sheets stay encrypted in every backup. To update,
 replace the JAR and restart the service.

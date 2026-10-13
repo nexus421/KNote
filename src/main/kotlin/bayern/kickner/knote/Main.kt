@@ -14,6 +14,7 @@ import bayern.kickner.knote.config.configWarnings
 import bayern.kickner.knote.config.loadConfig
 import bayern.kickner.knote.crypto.CryptoGate
 import bayern.kickner.knote.crypto.UnlockProof
+import bayern.kickner.knote.settings.SettingsStore
 import bayern.kickner.knote.i18n.Language
 import bayern.kickner.knote.i18n.TextsKey
 import bayern.kickner.knote.storage.SheetStore
@@ -75,6 +76,9 @@ private const val EXIT_DATA_ERROR = 65
 
 /** `EX_CONFIG` from sysexits.h: the config file is missing or invalid. knote.service does not restart on it. */
 private const val EXIT_CONFIG_ERROR = 78
+
+/** Settings changed in the admin area, next to the sheet directory in `dataDir`. */
+private const val SETTINGS_FILE = "settings.json"
 
 private const val USAGE = "Usage: java -jar knote.jar [config=<path>] [check | key]"
 
@@ -147,12 +151,20 @@ fun main(args: Array<String>) {
         }
     }
 
+    val settings = when (val result = SettingsStore.load(Path.of(config.dataDir, SETTINGS_FILE).toAbsolutePath())) {
+        is ResultOf2.Success -> result.value
+        is ResultOf2.Failure -> {
+            staticLog(KLogger.Level.ERROR, TAG) { "The settings file is broken, fix or move it: ${result.value}" }
+            exitProcess(EXIT_DATA_ERROR)
+        }
+    }
+
     if (args.contains("check")) {
         staticLog(KLogger.Level.INFO, TAG) { "Config file ${File(configPath).absolutePath} is valid, ${store.size} sheet(s) in $sheetDir are readable" }
         return
     }
 
-    val server = knoteServer(config, store, sheetDir)
+    val server = knoteServer(config, store, settings, sheetDir)
     runCatching { server.start(wait = true) }.onFailure { error ->
         staticLog(KLogger.Level.ERROR, TAG) { "Could not start on ${config.listenHost}:${config.listenPort}: ${error.rootCause().message}" }
         exitProcess(EXIT_START_FAILED)
@@ -164,18 +176,24 @@ fun main(args: Array<String>) {
  *
  * @param sheetDir Only for the banner, [store] is already loaded from it.
  */
-fun knoteServer(config: AppConfig, store: SheetStore, sheetDir: Path): EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> {
+fun knoteServer(
+    config: AppConfig,
+    store: SheetStore,
+    settings: SettingsStore,
+    sheetDir: Path,
+): EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> {
     staticLog(KLogger.Level.INFO, TAG) {
         "KNote $appVersion listening on ${config.listenHost}:${config.listenPort} with ${store.size} sheet(s) in $sheetDir"
     }
     val httpClient = HttpClient(ClientCIO) { engine { requestTimeout = 10_000 } }
-    return embeddedServer(CIO, host = config.listenHost, port = config.listenPort) { knote(config, store, httpClient) }
+    return embeddedServer(CIO, host = config.listenHost, port = config.listenPort) { knote(config, store, settings, httpClient) }
 }
 
 /**
  * Ktor module wiring all plugins and routes. Kept apart from the server setup so route tests can host it with a
  * fake OIDC provider, a fixed clock and a temporary sheet directory.
  *
+ * @param settings The settings changed in the admin area.
  * @param httpClient Calls the token and userinfo endpoints of the OIDC provider.
  * @param clock Current time in Unix milliseconds.
  * @param zone Time zone of the timestamps in the overview.
@@ -183,6 +201,7 @@ fun knoteServer(config: AppConfig, store: SheetStore, sheetDir: Path): EmbeddedS
 fun Application.knote(
     config: AppConfig,
     store: SheetStore,
+    settings: SettingsStore,
     httpClient: HttpClient,
     cryptoGate: CryptoGate = CryptoGate(config.cryptoParallelism),
     clock: () -> Long = System::currentTimeMillis,
@@ -216,9 +235,9 @@ fun Application.knote(
     routing {
         staticResources("/_static", "static")
         healthRoute()
-        startPage(config, clock)
+        startPage(store, settings, config, clock)
         authRoutes(config, httpClient, clock)
-        adminRoutes(store, cryptoGate, UnlockProof(config.sessionSignKey.hexToByteArray()), config, clock, zone)
+        adminRoutes(store, settings, cryptoGate, UnlockProof(config.sessionSignKey.hexToByteArray()), config, clock, zone)
         sheetRoutes(store, cryptoGate, config, zone, clock)
     }
 }

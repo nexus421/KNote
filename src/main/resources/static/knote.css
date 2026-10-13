@@ -405,6 +405,59 @@ ul.error {
     border-radius: 10px;
 }
 
+.success {
+    padding: 0.65rem 1rem;
+    border-left: 4px solid #22c55e;
+    border-radius: 0 8px 8px 0;
+    background: rgba(34, 197, 94, 0.12);
+}
+
+/* Sheets listed on the start page */
+
+.sheet-list {
+    margin-top: 1.6rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+    text-align: left;
+}
+
+.sheet-list h2 {
+    margin: 0 0 0.5rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.sheet-list ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sheet-list li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.6rem;
+    align-items: baseline;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.sheet-list li:last-child {
+    border-bottom: 0;
+}
+
+.sheet-list a {
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.sheet-list .path {
+    margin-left: auto;
+    font-size: 0.85rem;
+}
+
 /* Overview */
 
 .bar {

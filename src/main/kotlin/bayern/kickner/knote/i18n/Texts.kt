@@ -1,5 +1,6 @@
 package bayern.kickner.knote.i18n
 
+import bayern.kickner.knote.settings.StartPageList
 import bayern.kickner.knote.web.ProtectionChoice
 import io.ktor.server.application.ApplicationCall
 import io.ktor.util.AttributeKey
@@ -104,6 +105,15 @@ interface Texts {
 
     /** Hint below the protection choice. */
     fun passwordHint(minLength: Int): String
+
+    // Settings
+    val settings: String
+    val startPageListLegend: String
+    val startPageListHint: String
+    val saved: String
+
+    /** Label of a radio button in the start page setting. */
+    fun startPageList(choice: StartPageList): String
 
     // Delete
     val deleteSheet: String
