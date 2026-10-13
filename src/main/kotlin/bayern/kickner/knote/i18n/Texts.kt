@@ -19,6 +19,9 @@ interface Texts {
     val landingText: String
     val logIn: String
     val logOut: String
+
+    /** Shown next to "log out" in the overview. */
+    fun loggedInAs(name: String): String
     val loginFailedHeading: String
     val loginAbortedText: String
     val loginProviderErrorText: String

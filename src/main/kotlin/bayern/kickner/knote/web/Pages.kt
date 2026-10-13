@@ -227,11 +227,13 @@ fun MAIN.unlockForm(t: Texts, heading: String, hint: String, action: String, err
  * plain GET form, the server filters.
  *
  * @param sheets The sheets that match [query], all of them for an empty [query].
+ * @param adminName Display name of the logged in admin, empty hides "logged in as".
  * @param formatTime Formats [Sheet.updated] for display.
  */
-fun MAIN.overview(t: Texts, sheets: List<Sheet>, query: String, formatTime: (Long) -> String) {
+fun MAIN.overview(t: Texts, sheets: List<Sheet>, query: String, adminName: String, formatTime: (Long) -> String) {
     div(classes = "bar") {
         h1 { +t.sheets }
+        if (adminName.isNotBlank()) span(classes = "muted who") { +t.loggedInAs(adminName) }
         a(href = "$ADMIN_PATH/new", classes = "button") { +t.newSheet }
         form(action = LOGOUT_PATH, method = FormMethod.post) { submitInput(classes = "secondary") { value = t.logOut } }
     }

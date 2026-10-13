@@ -410,6 +410,10 @@ ul.error {
     margin: 0;
 }
 
+.who {
+    font-size: 0.88rem;
+}
+
 .search {
     display: flex;
     flex-wrap: wrap;

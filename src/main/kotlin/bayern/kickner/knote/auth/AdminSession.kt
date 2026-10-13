@@ -21,11 +21,12 @@ const val ADMIN_AUTH = "admin"
  * Admin login, kept in a cookie that is signed, not encrypted: the content is not secret.
  *
  * @property sub OIDC subject of the admin.
+ * @property name Display name from the provider for "logged in as", empty if it sent none.
  * @property expiresAt End of the login as Unix milliseconds. Checked on every request, so a stolen cookie expires on
  * the server as well, not only through `Max-Age` in the browser.
  */
 @Serializable
-data class AdminSession(val sub: String, val expiresAt: Long) {
+data class AdminSession(val sub: String, val expiresAt: Long, val name: String = "") {
     /** True while the login has not expired and [sub] is still an admin (see [isAdmin]). */
     fun isValid(now: Long, allowedSubjects: List<String>): Boolean = expiresAt > now && isAdmin(sub, allowedSubjects)
 }

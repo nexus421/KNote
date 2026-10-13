@@ -23,7 +23,9 @@ class OidcTest {
     fun `userinfo decides by sub`() {
         val allowed = listOf("sub-1")
 
-        assertEquals(LoginDecision.Allowed("sub-1"), evaluateUserinfo("""{"sub": "sub-1", "name": "A"}""", allowed))
+        assertEquals(LoginDecision.Allowed("sub-1", "A"), evaluateUserinfo("""{"sub": "sub-1", "name": "A"}""", allowed))
+        assertEquals(LoginDecision.Allowed("sub-1", "a.user"), evaluateUserinfo("""{"sub": "sub-1", "preferred_username": "a.user"}""", allowed))
+        assertEquals(LoginDecision.Allowed("sub-1", "x".repeat(60)), evaluateUserinfo("""{"sub": "sub-1", "name": "${"x".repeat(80)}"}""", allowed))
         assertEquals(LoginDecision.Denied("sub-2"), evaluateUserinfo("""{"sub": "sub-2"}""", allowed))
         assertEquals(LoginDecision.Allowed("sub-2"), evaluateUserinfo("""{"sub": "sub-2"}""", emptyList()))
         listOf("""{"name": "A"}""", """{"sub": null}""", """{"sub": ""}""", """{"sub": {}}""", "not json", "[]").forEach { body ->
@@ -58,7 +60,7 @@ class OidcTest {
         assertEquals("$PROVIDER/authorize", response.headers[HttpHeaders.Location].orEmpty().substringBefore("?"))
         assertEquals("knote-test", redirect.parameters["client_id"])
         assertEquals("$PUBLIC_BASE_URL$CALLBACK_PATH", redirect.parameters["redirect_uri"])
-        assertEquals("openid", redirect.parameters["scope"])
+        assertEquals("openid profile", redirect.parameters["scope"])
         assertEquals("code", redirect.parameters["response_type"])
         val cookie = parseServerSetCookieHeader(response.headers.getAll(HttpHeaders.SetCookie).orEmpty().single { it.startsWith("$STATE_COOKIE=") })
         assertEquals(redirect.parameters["state"], cookie.value)
@@ -146,6 +148,14 @@ class OidcTest {
         val cookie = client.login()
 
         assertEquals(HttpStatusCode.OK, client.adminGet("/_admin", cookie).status)
+    }
+
+    @Test
+    fun `the overview names the logged in admin`() = testApplication {
+        val client = knoteApp(userinfoBody = """{"sub": "$ADMIN_SUB", "name": "Marvin <b>"}""")
+        val cookie = client.login()
+
+        assertContains(client.adminGet("/_admin", cookie).bodyAsText(), "Logged in as Marvin &lt;b&gt;")
     }
 
     @Test

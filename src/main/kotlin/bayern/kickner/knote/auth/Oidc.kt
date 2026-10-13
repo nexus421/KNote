@@ -51,8 +51,8 @@ private const val STATE_MAX_AGE_SECONDS = 600
  * Outcome of a login after the provider answered the userinfo request.
  */
 sealed interface LoginDecision {
-    /** [sub] is configured as admin. */
-    data class Allowed(val sub: String) : LoginDecision
+    /** [sub] is an admin. [name] is the display name from the provider, empty if it sent none. */
+    data class Allowed(val sub: String, val name: String = "") : LoginDecision
 
     /** [sub] logged in at the provider but is not in the configured `allowedSubjects`. */
     data class Denied(val sub: String) : LoginDecision
@@ -97,12 +97,21 @@ fun stateMatches(cookieValue: String?, state: String?): Boolean {
     return MessageDigest.isEqual(cookieValue.toByteArray(), state.toByteArray())
 }
 
-/** Reads `sub` from the userinfo response [body] and checks it with [isAdmin]. */
+/** Longer display names are cut, they only fill "logged in as". */
+private const val MAX_NAME_LENGTH = 60
+
+/**
+ * Reads `sub` from the userinfo response [body] and checks it with [isAdmin]. The display name is `name`, or
+ * `preferred_username` if the provider sent no name (both need the scope `profile`).
+ */
 fun evaluateUserinfo(body: String, allowedSubjects: List<String>): LoginDecision {
-    val sub = runCatching { Json.parseToJsonElement(body).jsonObject["sub"]?.jsonPrimitive?.contentOrNull }.getOrNull()
+    val userinfo = runCatching { Json.parseToJsonElement(body).jsonObject }.getOrNull()
+    fun claim(key: String) = runCatching { userinfo?.get(key)?.jsonPrimitive?.contentOrNull }.getOrNull()?.trim()
+    val sub = claim("sub")
+    val name = (claim("name")?.ifEmpty { null } ?: claim("preferred_username")).orEmpty().take(MAX_NAME_LENGTH)
     return when {
         sub.isNullOrBlank() -> LoginDecision.Failed("userinfo response has no sub")
-        isAdmin(sub, allowedSubjects) -> LoginDecision.Allowed(sub)
+        isAdmin(sub, allowedSubjects) -> LoginDecision.Allowed(sub, name)
         else -> LoginDecision.Denied(sub)
     }
 }
@@ -122,7 +131,8 @@ suspend fun fetchUserinfo(client: HttpClient, userinfoUrl: String, accessToken: 
 }
 
 /**
- * Registers [OIDC_AUTH]: the authorization code flow as confidential client (client secret, `client_secret_post`).
+ * Registers [OIDC_AUTH]: the authorization code flow as confidential client (client secret, `client_secret_post`),
+ * scopes `openid` and `profile` (the latter for the display name).
  * The token request must be a POST (RFC 6749 section 3.2), Ktor's default is GET. Every failure of the flow, a
  * state mismatch included, ends on a 403 page.
  */
@@ -137,7 +147,7 @@ fun AuthenticationConfig.oidc(config: AppConfig, httpClient: HttpClient) {
             requestMethod = HttpMethod.Post,
             clientId = config.oidc.clientId,
             clientSecret = config.oidc.clientSecret,
-            defaultScopes = listOf("openid"),
+            defaultScopes = listOf("openid", "profile"),
             onStateCreated = { call, state -> call.response.cookies.append(stateCookie(state)) },
             verifyState = { call, state -> stateMatches(call.request.cookies[STATE_COOKIE], state) },
         )
@@ -184,7 +194,7 @@ private suspend fun ApplicationCall.completeLogin(config: AppConfig, httpClient:
 
     when (decision) {
         is LoginDecision.Allowed -> {
-            sessions.set(AdminSession(decision.sub, clock() + config.sessionHours * 3_600_000L))
+            sessions.set(AdminSession(decision.sub, clock() + config.sessionHours * 3_600_000L, decision.name))
             staticLog(KLogger.Level.INFO, TAG) { "Admin login sub=${decision.sub.toLogLine()}" }
             respondRedirect(ADMIN_PATH)
         }

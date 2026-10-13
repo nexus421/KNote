@@ -10,6 +10,7 @@ object GermanTexts : Texts {
     override val landingText = "Seiten sind direkt über ihre Adresse erreichbar. Die Verwaltung braucht eine Anmeldung."
     override val logIn = "Anmelden"
     override val logOut = "Abmelden"
+    override fun loggedInAs(name: String) = "Angemeldet als $name"
     override val loginFailedHeading = "Anmeldung fehlgeschlagen"
     override val loginAbortedText = "Die Anmeldung wurde abgebrochen oder ist abgelaufen."
     override val loginProviderErrorText = "Der Anmeldedienst hat nicht wie erwartet geantwortet."

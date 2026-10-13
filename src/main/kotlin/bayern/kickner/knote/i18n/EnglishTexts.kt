@@ -10,6 +10,7 @@ object EnglishTexts : Texts {
     override val landingText = "Sheets are reachable directly at their address. Managing them needs a login."
     override val logIn = "Log in"
     override val logOut = "Log out"
+    override fun loggedInAs(name: String) = "Logged in as $name"
     override val loginFailedHeading = "Login failed"
     override val loginAbortedText = "The login was cancelled or has expired."
     override val loginProviderErrorText = "The login service did not answer as expected."
