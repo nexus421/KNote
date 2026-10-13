@@ -100,7 +100,7 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, cl
                         config,
                     )
 
-                    is SheetContent.Encrypted -> call.respondPage(title = sheet.title) { adminUnlockForm(call.texts, sheet) }
+                    is SheetContent.Encrypted -> call.respondPage(title = sheet.title, narrow = true) { adminUnlockForm(call.texts, sheet) }
                 }
             }
 
@@ -176,7 +176,7 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, cl
 
             get("/delete/{id}") {
                 val sheet = store.findById(call.parameters["id"].orEmpty()) ?: return@get call.respondNotFound()
-                call.respondPage(title = call.texts.deleteSheet) { deleteConfirm(call.texts, sheet) }
+                call.respondPage(title = call.texts.deleteSheet, narrow = true) { deleteConfirm(call.texts, sheet) }
             }
 
             post("/delete/{id}") {

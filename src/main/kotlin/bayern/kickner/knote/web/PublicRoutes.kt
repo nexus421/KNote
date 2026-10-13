@@ -43,7 +43,7 @@ fun Route.startPage(config: AppConfig, clock: () -> Long) {
     get("/") {
         val loggedIn = call.sessions.get<AdminSession>()?.isValid(clock(), config.oidc.allowedSubjects) == true
         if (loggedIn) call.respondRedirect(ADMIN_PATH)
-        else call.respondPage(title = "KNote") { landing(call.texts) }
+        else call.respondPage(title = "KNote", narrow = true, header = false) { landing(call.texts) }
     }
 }
 
@@ -57,7 +57,7 @@ fun Route.sheetRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig) {
         val sheet = store.find(call.sheetPath()) ?: return@get call.respondNotFound()
         when (val content = sheet.content) {
             is SheetContent.Plain -> call.respondPage(title = sheet.title) { sheetView(sheet.title, renderMarkdown(content.markdown)) }
-            is SheetContent.Encrypted -> call.respondPage(title = sheet.title) { unlockForm(call.texts, sheet.title, call.texts.lockedHint, "/${sheet.path}") }
+            is SheetContent.Encrypted -> call.respondPage(title = sheet.title, narrow = true) { unlockForm(call.texts, sheet.title, call.texts.lockedHint, "/${sheet.path}") }
         }
     }
 
@@ -90,7 +90,7 @@ internal suspend fun ApplicationCall.respondUnlockFailure(sheet: Sheet, error: U
     when (error) {
         UnlockError.WrongPassword -> {
             staticLog(KLogger.Level.WARN, TAG) { "Wrong password for sheet path=${sheet.path} ip=${clientIp(config.trustedProxyIp)}" }
-            respondPage(HttpStatusCode.Forbidden, sheet.title, passwordForm)
+            respondPage(HttpStatusCode.Forbidden, sheet.title, narrow = true, content = passwordForm)
         }
 
         UnlockError.NotProtected -> respondSeeOther("/${sheet.path}")

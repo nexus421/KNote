@@ -1,5 +1,6 @@
 package bayern.kickner.knote.web
 
+import bayern.kickner.knote.BuildConfig
 import bayern.kickner.knote.auth.LOGIN_PATH
 import bayern.kickner.knote.auth.LOGOUT_PATH
 import bayern.kickner.knote.i18n.Texts
@@ -14,8 +15,14 @@ import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import kotlinx.html.*
 
-/** Path of the only stylesheet, served from `resources/static`. */
-const val STYLESHEET_PATH = "/_static/knote.css"
+/**
+ * The stylesheet, the logo and the favicon, served from `resources/static`. The version in the query makes browsers
+ * load them again after an update.
+ */
+private const val STATIC_QUERY = "?v=${BuildConfig.VERSION}"
+const val STYLESHEET_PATH = "/_static/knote.css$STATIC_QUERY"
+private const val LOGO_PATH = "/_static/logo.jpg$STATIC_QUERY"
+private const val FAVICON_PATH = "/_static/favicon.png$STATIC_QUERY"
 
 /** Path of the admin overview. */
 const val ADMIN_PATH = "/_admin"
@@ -63,26 +70,44 @@ data class EditorValues(
 )
 
 /**
- * Responds with a complete page: shared head, stylesheet and [content] inside `<main>`, in the configured language.
- * kotlinx.html escapes every text, [markdownArticle] is the only place with raw HTML.
+ * Responds with a complete page: shared head, a header with logo and [content] inside `<main>`, in the configured
+ * language. kotlinx.html escapes every text, [markdownArticle] is the only place with raw HTML.
+ *
+ * @param narrow Narrow card for short pages such as forms and messages.
+ * @param header False hides the header, for the start page, which shows the logo large itself.
  */
-suspend fun ApplicationCall.respondPage(status: HttpStatusCode = HttpStatusCode.OK, title: String, content: MAIN.() -> Unit) =
-    respondHtml(status) {
-        lang = texts.htmlLang
-        head {
-            meta(charset = "utf-8")
-            meta(name = "viewport", content = "width=device-width, initial-scale=1")
-            title(title)
-            link(rel = "stylesheet", href = STYLESHEET_PATH)
-        }
-        body {
-            main { content() }
-        }
+suspend fun ApplicationCall.respondPage(
+    status: HttpStatusCode = HttpStatusCode.OK,
+    title: String,
+    narrow: Boolean = false,
+    header: Boolean = true,
+    content: MAIN.() -> Unit,
+) = respondHtml(status) {
+    lang = texts.htmlLang
+    head {
+        meta(charset = "utf-8")
+        meta(name = "viewport", content = "width=device-width, initial-scale=1")
+        title(title)
+        link(rel = "icon", type = "image/png", href = FAVICON_PATH)
+        link(rel = "stylesheet", href = STYLESHEET_PATH)
     }
+    body {
+        if (header) header(classes = "site") {
+            a(href = "/", classes = "brand") {
+                img(src = LOGO_PATH, alt = "") {
+                    width = "32"
+                    height = "32"
+                }
+                span { +"KNote" }
+            }
+        }
+        main(classes = if (narrow) "narrow" else null) { content() }
+    }
+}
 
 /** Responds with a page that only shows [heading], [text] and an optional [link]. Used for every error. */
 suspend fun ApplicationCall.respondMessage(status: HttpStatusCode, heading: String, text: String, link: PageLink? = null) =
-    respondPage(status, heading) {
+    respondPage(status, heading, narrow = true) {
         h1 { +heading }
         p { +text }
         if (link != null) p { a(href = link.href) { +link.label } }
@@ -100,9 +125,15 @@ suspend fun ApplicationCall.respondNotFound() =
 
 /** Start page for visitors without admin login. */
 fun MAIN.landing(t: Texts) {
-    h1 { +"KNote" }
-    p { +t.landingText }
-    p { a(href = LOGIN_PATH, classes = "button") { +t.logIn } }
+    div(classes = "hero") {
+        img(src = LOGO_PATH, alt = "") {
+            width = "112"
+            height = "112"
+        }
+        h1 { +"KNote" }
+        p { +t.landingText }
+        p { a(href = LOGIN_PATH, classes = "button") { +t.logIn } }
+    }
 }
 
 /** A rendered sheet. [html] must come from `renderMarkdown`. */
@@ -155,6 +186,10 @@ fun MAIN.overview(t: Texts, sheets: List<Sheet>, formatTime: (Long) -> String) {
         p { +t.noSheetsYet }
         return
     }
+    div(classes = "table-wrap") { sheetTable(t, sheets, formatTime) }
+}
+
+private fun FlowContent.sheetTable(t: Texts, sheets: List<Sheet>, formatTime: (Long) -> String) {
     table {
         thead {
             tr {
@@ -170,8 +205,8 @@ fun MAIN.overview(t: Texts, sheets: List<Sheet>, formatTime: (Long) -> String) {
                 tr {
                     td { a(href = "/${sheet.path}") { +sheet.path } }
                     td { +sheet.title }
-                    td { if (sheet.isProtected) +t.protectedMarker }
-                    td { +formatTime(sheet.updated) }
+                    td { if (sheet.isProtected) span(classes = "badge") { +t.protectedMarker } }
+                    td(classes = "muted") { +formatTime(sheet.updated) }
                     td(classes = "actions") {
                         a(href = "$ADMIN_PATH/edit/${sheet.id}") { +t.edit }
                         a(href = "$ADMIN_PATH/delete/${sheet.id}") { +t.delete }
