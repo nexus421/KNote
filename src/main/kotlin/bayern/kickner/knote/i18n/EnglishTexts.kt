@@ -88,6 +88,12 @@ object EnglishTexts : Texts {
     override val toOverview = "To the overview"
     override val errorHeading = "Error"
     override val saveFailedText = "The change could not be saved."
+    override val tooManyRequestsHeading = "Too many attempts"
+    override val tooManyRequestsText = "Please wait a minute and try again."
+    override val tooLargeHeading = "Too large"
+    override val tooLargeText = "The request is larger than allowed."
+    override val unexpectedErrorText = "Something went wrong. Please try again."
+    override val requestFailedText = "The request could not be processed."
     override val crossSiteHeading = "Rejected"
     override val crossSiteText = "The request did not come from KNote itself."
 

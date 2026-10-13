@@ -16,6 +16,8 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.parameters
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import kotlin.test.Test
 import kotlin.test.assertContains
@@ -245,6 +247,39 @@ class PublicRoutesTest {
         val client = knoteApp(storeWithSheets())
 
         listOf("/gibt-es-nicht.md", "/einkauf.md.md", "/.md").forEach { assertEquals(HttpStatusCode.NotFound, client.get(it).status, it) }
+    }
+
+    @Test
+    fun `an exceeded limit shows a page instead of an empty answer`() = testApplication {
+        val client = knoteApp(storeWithSheets(), testConfig(unlockAttemptsPerMinute = 1))
+        client.unlock("privat/notiz", "wrong")
+
+        val response = client.unlock("privat/notiz", "wrong")
+
+        assertEquals(HttpStatusCode.TooManyRequests, response.status)
+        assertContains(response.bodyAsText(), "<h1>Too many attempts</h1>")
+    }
+
+    @Test
+    fun `a body over the limit shows a page`() = testApplication {
+        val client = knoteApp(storeWithSheets(), testConfig(maxSheetBytes = 1024))
+
+        val response = client.unlock("privat/notiz", "x".repeat(200_000))
+
+        assertEquals(HttpStatusCode.PayloadTooLarge, response.status)
+        assertContains(response.bodyAsText(), "<h1>Too large</h1>")
+    }
+
+    @Test
+    fun `an unexpected error shows a page`() = testApplication {
+        val client = knoteApp()
+        application { routing { get("/_boom") { error("boom") } } }
+
+        val response = client.get("/_boom")
+
+        assertEquals(HttpStatusCode.InternalServerError, response.status)
+        assertContains(response.bodyAsText(), "Something went wrong.")
+        assertFalse(response.bodyAsText().contains("boom"))
     }
 
     @Test

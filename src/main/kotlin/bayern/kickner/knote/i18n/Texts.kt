@@ -107,6 +107,12 @@ interface Texts {
     val toOverview: String
     val errorHeading: String
     val saveFailedText: String
+    val tooManyRequestsHeading: String
+    val tooManyRequestsText: String
+    val tooLargeHeading: String
+    val tooLargeText: String
+    val unexpectedErrorText: String
+    val requestFailedText: String
     val crossSiteHeading: String
     val crossSiteText: String
 

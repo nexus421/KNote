@@ -24,6 +24,7 @@ import bayern.kickner.knote.web.UNLOCK_RATE_LIMIT
 import bayern.kickner.knote.web.adminRoutes
 import bayern.kickner.knote.web.clientIp
 import bayern.kickner.knote.web.healthRoute
+import bayern.kickner.knote.web.knoteErrorPages
 import bayern.kickner.knote.web.sheetRoutes
 import bayern.kickner.knote.web.startPage
 import bayern.kickner.knote.web.untrustedPeerWarning
@@ -38,6 +39,7 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.http.content.staticResources
 import io.ktor.server.plugins.bodylimit.RequestBodyLimit
 import io.ktor.server.plugins.ratelimit.RateLimit
+import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.routing.routing
 import io.ktor.server.sessions.Sessions
 import kotnexlib.ArgsInterpreter
@@ -191,6 +193,7 @@ fun Application.knote(
     install(RequestBodyLimit) {
         bodyLimit { 3L * config.maxSheetBytes + FORM_OVERHEAD_BYTES }
     }
+    install(StatusPages) { knoteErrorPages() }
     install(Sessions) { adminCookie(config) }
     install(Authentication) {
         oidc(config, httpClient)
