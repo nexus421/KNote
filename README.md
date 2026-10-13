@@ -11,10 +11,12 @@ through OIDC.
 
 ## Features
 
-* Markdown with tables, strikethrough and task lists, preview in the editor
+* Markdown with tables, strikethrough, task lists and autolinks, preview in the editor
+* Every sheet shows its last change and can be downloaded as Markdown, with a clean print layout
 * Any path per sheet, e.g. `https://notes.example.org/projects/knote`
 * Optional password per sheet, content encrypted with AES-GCM
 * Admin login through an OIDC provider such as Pocket ID, access is managed there
+* Search and duplicate in the admin area
 * Rate limits on password attempts and login
 * English and German interface, more languages are easy to add
 * No database, no JavaScript: one JSON file per sheet, one config file, one JAR
