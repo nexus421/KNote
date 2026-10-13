@@ -4,6 +4,7 @@ import bayern.kickner.knote.config.AppConfig
 import bayern.kickner.knote.i18n.texts
 import bayern.kickner.knote.web.PageLink
 import bayern.kickner.knote.web.respondMessage
+import io.ktor.server.application.ApplicationCall
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
@@ -34,6 +35,13 @@ data class AdminSession(val sub: String, val expiresAt: Long) {
  * through, so access is managed at the provider alone. Otherwise only the listed accounts.
  */
 fun isAdmin(sub: String, allowedSubjects: List<String>): Boolean = allowedSubjects.isEmpty() || sub in allowedSubjects
+
+/**
+ * True if the request carries a valid admin login. For pages outside the admin area that offer admin extras, such as
+ * the edit link on a sheet. Grants nothing by itself, every admin route checks the login again.
+ */
+fun ApplicationCall.hasAdminLogin(config: AppConfig, clock: () -> Long): Boolean =
+    sessions.get<AdminSession>()?.isValid(clock(), config.oidc.allowedSubjects) == true
 
 /**
  * Registers the admin cookie: HttpOnly, Secure and `SameSite=Lax`, signed with HMAC-SHA256. Ktor does not check

@@ -19,6 +19,7 @@ import bayern.kickner.knote.testConfig
 import bayern.kickner.knote.config.AppConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.request.forms.submitForm
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
@@ -104,6 +105,20 @@ class AdminRoutesTest {
         assertContains(body, "Z &lt;i&gt;")
         assertContains(body, "protected")
         assertContains(body, "13.10.2026 14:00:00 CEST")
+    }
+
+    @Test
+    fun `a logged in admin finds an edit link on the sheet page`() = testApplication {
+        val sheet = plainSheet("einkauf")
+        val admin = admin(sheet)
+
+        val asAdmin = admin.get("/einkauf")
+        val asVisitor = admin.client.get("/einkauf")
+
+        assertContains(asAdmin.bodyAsText(), "href=\"/_admin/edit/${sheet.id}\"")
+        assertEquals("no-store", asAdmin.headers[HttpHeaders.CacheControl])
+        assertFalse(asVisitor.bodyAsText().contains("/_admin/edit/"))
+        assertNull(asVisitor.headers[HttpHeaders.CacheControl])
     }
 
     @Test

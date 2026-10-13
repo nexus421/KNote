@@ -168,19 +168,25 @@ sealed interface MarkdownDownload {
  * `renderMarkdown`.
  *
  * @param changed The last change, already formatted with [formatTime].
+ * @param editHref Link to the editor, only for a logged in admin.
  */
-fun MAIN.sheetView(t: Texts, title: String, html: String, changed: String, download: MarkdownDownload) {
+fun MAIN.sheetView(t: Texts, title: String, html: String, changed: String, download: MarkdownDownload, editHref: String? = null) {
     h1 { +title }
     markdownArticle(html)
     div(classes = "sheet-meta") {
         span(classes = "muted") { +"${t.lastChanged}: $changed" }
-        when (download) {
+        span(classes = "meta-actions") { sheetActions(t, download, editHref) }
+    }
+}
+
+private fun FlowContent.sheetActions(t: Texts, download: MarkdownDownload, editHref: String?) {
+    if (editHref != null) a(href = editHref, classes = "no-print") { +t.edit }
+    when (download) {
             is MarkdownDownload.Link -> a(href = download.href, classes = "no-print") { +t.downloadMarkdown }
             is MarkdownDownload.Form -> form(action = download.action, method = FormMethod.post, classes = "no-print") {
                 hiddenInput(name = "password") { value = download.password }
                 button(type = ButtonType.submit, classes = "link") { +t.downloadMarkdown }
             }
-        }
     }
 }
 

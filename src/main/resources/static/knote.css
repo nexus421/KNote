@@ -499,6 +499,12 @@ td.actions a.danger {
     margin: 0;
 }
 
+.meta-actions {
+    display: flex;
+    gap: 1.1rem;
+    align-items: center;
+}
+
 button.link {
     padding: 0;
     border: 0;

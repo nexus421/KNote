@@ -2,7 +2,7 @@ package bayern.kickner.knote.web
 
 import bayern.kickner.klogger.KLogger
 import bayern.kickner.klogger.staticLog
-import bayern.kickner.knote.auth.AdminSession
+import bayern.kickner.knote.auth.hasAdminLogin
 import bayern.kickner.knote.config.AppConfig
 import bayern.kickner.knote.crypto.CryptoGate
 import bayern.kickner.knote.crypto.UnlockError
@@ -27,8 +27,6 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
-import io.ktor.server.sessions.get
-import io.ktor.server.sessions.sessions
 import kotlinx.html.MAIN
 import kotnexlib.ResultOf2
 import java.time.ZoneId
@@ -57,8 +55,7 @@ fun Route.healthRoute() {
  */
 fun Route.startPage(config: AppConfig, clock: () -> Long) {
     get("/") {
-        val loggedIn = call.sessions.get<AdminSession>()?.isValid(clock(), config.oidc.allowedSubjects) == true
-        if (loggedIn) call.respondRedirect(ADMIN_PATH)
+        if (call.hasAdminLogin(config, clock)) call.respondRedirect(ADMIN_PATH)
         else call.respondPage(title = "KNote", narrow = true, startPage = true) { landing(call.texts) }
     }
 }
@@ -69,9 +66,12 @@ fun Route.startPage(config: AppConfig, clock: () -> Long) {
  * [MARKDOWN_SUFFIX] appended, both answer the raw Markdown as a file instead. Unknown and invalid paths answer 404,
  * the lookup only ever goes through [store].
  *
+ * A logged in admin also gets a link to the editor. Such a page is never cached, it differs from the public one.
+ *
  * @param zone Time zone of the "last changed" line.
+ * @param clock Current time in Unix milliseconds, checks the admin login.
  */
-fun Route.sheetRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, zone: ZoneId) {
+fun Route.sheetRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, zone: ZoneId, clock: () -> Long) {
     get("/{path...}") {
         val request = call.sheetRequest()
         val sheet = store.find(request.path) ?: return@get call.respondNotFound()
@@ -79,8 +79,11 @@ fun Route.sheetRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, zo
         when (val content = sheet.content) {
             is SheetContent.Plain ->
                 if (request.download) call.respondMarkdownFile(sheet, content.markdown)
-                else call.respondPage(title = sheet.title) {
-                    sheetView(t, sheet.title, renderMarkdown(content.markdown), formatTime(sheet.updated, zone), MarkdownDownload.Link(sheet.url(download = true)))
+                else {
+                    val editHref = call.editHref(sheet, config, clock)
+                    call.respondPage(title = sheet.title) {
+                        sheetView(t, sheet.title, renderMarkdown(content.markdown), formatTime(sheet.updated, zone), MarkdownDownload.Link(sheet.url(download = true)), editHref)
+                    }
                 }
 
             is SheetContent.Encrypted -> call.respondPage(title = sheet.title, narrow = true) {
@@ -101,9 +104,12 @@ fun Route.sheetRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, zo
                 is ResultOf2.Success -> {
                     call.response.header(HttpHeaders.CacheControl, "no-store")
                     if (request.download) call.respondMarkdownFile(sheet, result.value)
-                    else call.respondPage(title = sheet.title) {
-                        val download = MarkdownDownload.Form(sheet.url(download = true), password)
-                        sheetView(t, sheet.title, renderMarkdown(result.value), formatTime(sheet.updated, zone), download)
+                    else {
+                        val editHref = call.editHref(sheet, config, clock)
+                        call.respondPage(title = sheet.title) {
+                            val download = MarkdownDownload.Form(sheet.url(download = true), password)
+                            sheetView(t, sheet.title, renderMarkdown(result.value), formatTime(sheet.updated, zone), download, editHref)
+                        }
                     }
                 }
 
@@ -113,6 +119,13 @@ fun Route.sheetRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, zo
             }
         }
     }
+}
+
+/** The editor link for a logged in admin, null for everyone else. Marks the response as not cacheable. */
+private fun ApplicationCall.editHref(sheet: Sheet, config: AppConfig, clock: () -> Long): String? {
+    if (hasAdminLogin(config, clock).not()) return null
+    response.header(HttpHeaders.CacheControl, "no-store")
+    return "$ADMIN_PATH/edit/${sheet.id}"
 }
 
 /** A requested sheet path and whether the raw Markdown file was asked for. */
