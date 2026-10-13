@@ -22,6 +22,7 @@ import bayern.kickner.knote.web.SecurityHeaders
 import bayern.kickner.knote.web.UNLOCK_RATE_LIMIT
 import bayern.kickner.knote.web.adminRoutes
 import bayern.kickner.knote.web.clientIp
+import bayern.kickner.knote.web.healthRoute
 import bayern.kickner.knote.web.sheetRoutes
 import bayern.kickner.knote.web.startPage
 import bayern.kickner.knote.web.untrustedPeerWarning
@@ -201,6 +202,7 @@ fun Application.knote(
     }
     routing {
         staticResources("/_static", "static")
+        healthRoute()
         startPage(config, clock)
         authRoutes(config, httpClient, clock)
         adminRoutes(store, cryptoGate, UnlockProof(config.sessionSignKey.hexToByteArray()), config, clock, zone)

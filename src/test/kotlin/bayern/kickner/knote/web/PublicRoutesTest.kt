@@ -190,6 +190,17 @@ class PublicRoutesTest {
     }
 
     @Test
+    fun `the health check answers ok without login`() = testApplication {
+        val client = knoteApp()
+
+        val response = client.get("/_health")
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertEquals("ok", response.bodyAsText())
+        assertEquals("nosniff", response.headers["X-Content-Type-Options"])
+    }
+
+    @Test
     fun `the stylesheet is served`() = testApplication {
         val client = knoteApp()
 

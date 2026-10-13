@@ -5,7 +5,8 @@
 | Method | Path                       | Access   | Rate limit | Response                                                                       |
 |--------|----------------------------|----------|------------|--------------------------------------------------------------------------------|
 | GET    | `/`                        | everyone |            | Start page with login button. A logged in admin is redirected to `/_admin`.    |
-| GET    | `/_static/knote.css`       | everyone |            | The stylesheet.                                                                |
+| GET    | `/_static/...`             | everyone |            | Stylesheet, logo and favicon.                                                  |
+| GET    | `/_health`                 | everyone |            | `ok` as long as the process runs, for monitoring.                              |
 | GET    | `/_auth/login`             | everyone | `login`    | `302` to the OIDC provider, sets the state cookie.                             |
 | GET    | `/_auth/callback`          | everyone | `login`    | `302` to `/_admin` with the admin cookie, or `403`/`502` with a message.       |
 | POST   | `/_auth/logout`            | everyone |            | Deletes the admin cookie, `303` to `/`.                                        |

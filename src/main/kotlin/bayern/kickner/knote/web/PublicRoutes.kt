@@ -20,6 +20,7 @@ import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.request.receiveParameters
 import io.ktor.server.response.header
 import io.ktor.server.response.respondRedirect
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -30,8 +31,16 @@ import kotnexlib.ResultOf2
 
 private const val TAG = "PublicRoutes"
 
+/** Liveness check for monitoring. Below `_`, so it can never collide with a sheet. */
+const val HEALTH_PATH = "/_health"
+
 /** Rate limit of every password attempt, public and admin, keyed by client IP. */
 val UNLOCK_RATE_LIMIT = RateLimitName("unlock")
+
+/** `GET /_health`: answers `ok` as long as the process runs. No login, no data, meant for monitoring tools. */
+fun Route.healthRoute() {
+    get(HEALTH_PATH) { call.respondText("ok") }
+}
 
 /**
  * `GET /`: an admin with a valid login goes straight to the overview, everyone else sees the start page with the

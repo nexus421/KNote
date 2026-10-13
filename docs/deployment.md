@@ -74,6 +74,10 @@ With a protected sheet `test/locked`:
 | Admin POST from a foreign origin | `curl -s -o /dev/null -w "%{http_code}\n" -X POST -H "Origin: https://evil.example" https://<domain>/_admin/new` | `403`                                 |
 | Proxy address correct            | `journalctl -u knote --no-pager \| grep -i "untrusted peer"`                                                   | empty                                 |
 
+## Monitoring
+
+`GET /_health` answers `200 ok` without login as long as KNote runs, e.g. for Uptime Kuma.
+
 ## Backup and update
 
 Sheets are plain JSON files in `<dataDir>/sheets`, protected sheets stay encrypted in every backup. To update,
