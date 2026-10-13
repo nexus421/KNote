@@ -107,6 +107,22 @@ class AdminRoutesTest {
     }
 
     @Test
+    fun `the search filters by path and title ignoring case`() = testApplication {
+        val admin = admin(plainSheet("einkauf", title = "Wochenmarkt"), plainSheet("projekte/knote", title = "KNote"))
+
+        val byPath = admin.get("/_admin?q=EINK").bodyAsText()
+        val byTitle = admin.get("/_admin?q=markt").bodyAsText()
+        val none = admin.get("/_admin?q=nichts").bodyAsText()
+
+        assertContains(byPath, "href=\"/einkauf\"")
+        assertFalse(byPath.contains("href=\"/projekte/knote\""))
+        assertContains(byTitle, "href=\"/einkauf\"")
+        assertContains(none, "No sheet matches.")
+        assertContains(none, "value=\"nichts\"")
+        assertContains(none, ">Show all</a>")
+    }
+
+    @Test
     fun `a plain sheet is created`() = testApplication {
         val admin = admin()
 

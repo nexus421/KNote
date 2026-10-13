@@ -55,7 +55,9 @@ fun Route.adminRoutes(store: SheetStore, gate: CryptoGate, unlockProof: UnlockPr
         install(NoStore)
         authenticate(ADMIN_AUTH) {
             get {
-                call.respondPage(title = call.texts.sheets) { overview(call.texts, store.all) { formatTime(it, zone) } }
+                val query = call.request.queryParameters["q"].orEmpty().trim()
+                val sheets = store.all.filter { it.matches(query) }
+                call.respondPage(title = call.texts.sheets) { overview(call.texts, sheets, query) { formatTime(it, zone) } }
             }
 
             get("/new") {
@@ -243,6 +245,10 @@ private fun pathTaken(t: Texts, store: SheetStore, path: String, ownId: String?)
     val other = store.find(path)
     return if (other != null && other.id != ownId) listOf(t.pathTaken) else emptyList()
 }
+
+/** True if [query] is empty or part of path or title, ignoring case. */
+private fun Sheet.matches(query: String): Boolean =
+    query.isEmpty() || path.contains(query, ignoreCase = true) || title.contains(query, ignoreCase = true)
 
 /** `sub` of the logged in admin. Only called below [authenticate], where the principal always exists. */
 private fun ApplicationCall.adminSub(): String = principal<AdminSession>()?.sub ?: "unknown"

@@ -244,7 +244,7 @@ label.choice {
     cursor: pointer;
 }
 
-input[type=text], input[type=password], textarea {
+input[type=text], input[type=password], input[type=search], textarea {
     width: 100%;
     padding: 0.55rem 0.7rem;
     border: 1px solid var(--line);
@@ -255,7 +255,7 @@ input[type=text], input[type=password], textarea {
     transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-input[type=text]:focus, input[type=password]:focus, textarea:focus {
+input[type=text]:focus, input[type=password]:focus, input[type=search]:focus, textarea:focus {
     border-color: var(--accent);
     outline: none;
     box-shadow: 0 0 0 3px var(--accent-ring);
@@ -377,6 +377,19 @@ ul.error {
 
 .bar form {
     margin: 0;
+}
+
+.search {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+    margin: 1.4rem 0 0;
+}
+
+.search input {
+    flex: 1;
+    min-width: 12rem;
 }
 
 .table-wrap {

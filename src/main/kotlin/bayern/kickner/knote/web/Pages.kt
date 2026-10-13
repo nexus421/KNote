@@ -216,18 +216,29 @@ fun MAIN.unlockForm(t: Texts, heading: String, hint: String, action: String, err
 }
 
 /**
- * The admin overview: all sheets sorted by path, with links to edit and delete.
+ * The admin overview: the sheets sorted by path, with links to edit and delete, and a search form. The search is a
+ * plain GET form, the server filters.
  *
+ * @param sheets The sheets that match [query], all of them for an empty [query].
  * @param formatTime Formats [Sheet.updated] for display.
  */
-fun MAIN.overview(t: Texts, sheets: List<Sheet>, formatTime: (Long) -> String) {
+fun MAIN.overview(t: Texts, sheets: List<Sheet>, query: String, formatTime: (Long) -> String) {
     div(classes = "bar") {
         h1 { +t.sheets }
         a(href = "$ADMIN_PATH/new", classes = "button") { +t.newSheet }
         form(action = LOGOUT_PATH, method = FormMethod.post) { submitInput(classes = "secondary") { value = t.logOut } }
     }
+    form(action = ADMIN_PATH, method = FormMethod.get, classes = "search") {
+        input(type = InputType.search, name = "q") {
+            value = query
+            placeholder = t.searchPlaceholder
+            attributes["aria-label"] = t.search
+        }
+        button(type = ButtonType.submit, classes = "secondary") { +t.search }
+        if (query.isNotEmpty()) a(href = ADMIN_PATH) { +t.showAll }
+    }
     if (sheets.isEmpty()) {
-        p { +t.noSheetsYet }
+        p { +if (query.isEmpty()) t.noSheetsYet else t.noMatches }
         return
     }
     div(classes = "table-wrap") { sheetTable(t, sheets, formatTime) }

@@ -44,6 +44,10 @@ interface Texts {
     val sheets: String
     val newSheet: String
     val noSheetsYet: String
+    val search: String
+    val searchPlaceholder: String
+    val noMatches: String
+    val showAll: String
     val columnPath: String
     val columnTitle: String
     val columnProtection: String
