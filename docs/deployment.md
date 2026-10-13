@@ -3,16 +3,25 @@
 KNote is one fat JAR that speaks plain HTTP. TLS is the job of a reverse proxy in front of it (Zoraxy, Caddy,
 nginx or any other). The steps below assume Linux with systemd.
 
-## 1. Build and copy
+## 1. Get the JAR and copy
+
+Every [release](https://github.com/nexus421/KNote/releases) has `knote.jar` attached:
+
+```bash
+curl -LO https://github.com/nexus421/KNote/releases/latest/download/knote.jar
+```
+
+To build it yourself instead:
 
 ```bash
 ./gradlew buildFatJar
 ```
 
 Gradle itself runs on Corretto 25 as set in [gradle-daemon-jvm.properties](../gradle/gradle-daemon-jvm.properties),
-so a newer default JDK on the build machine does not matter and IntelliJ follows the same setting.
+so a newer default JDK on the build machine does not matter and IntelliJ follows the same setting. The JAR then is
+`build/libs/knote.jar`.
 
-Copy `build/libs/knote.jar`, your `config.json` and [knote.service](../knote.service) to the server. The JAR needs a
+Copy `knote.jar`, your `config.json` and [knote.service](../knote.service) to the server. The JAR needs a
 Java 25 runtime, Amazon Corretto is recommended. Run KNote as its own unprivileged user and protect the config, it
 holds the client secret and the session key:
 

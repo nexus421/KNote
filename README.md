@@ -9,6 +9,8 @@
 without login. A sheet can have its own password, then it is stored encrypted. Managing sheets needs an admin login
 through OIDC.
 
+<p align="center"><img src="docs/images/start.webp" alt="KNote start page in dark mode" width="720"></p>
+
 ## Features
 
 * Markdown with tables, strikethrough, task lists and autolinks, preview in the editor
@@ -22,17 +24,22 @@ through OIDC.
 * English and German interface, more languages are easy to add
 * No database, no JavaScript: one JSON file per sheet, one config file, one JAR
 
+<p align="center">
+  <img src="docs/images/sheet.webp" alt="A sheet with a task list and a table in light mode" width="49%">
+  <img src="docs/images/overview.webp" alt="The admin overview with search, sorting and actions" width="49%">
+</p>
+
 ## Getting started
 
 Requirements: Java 25 (Amazon Corretto recommended), an OIDC provider and a reverse proxy for TLS (e.g. Zoraxy,
 Caddy or nginx).
 
 ```bash
-./gradlew buildFatJar                      # build/libs/knote.jar
-cp config.example.json config.json
-java -jar build/libs/knote.jar key         # value for sessionSignKey
-java -jar build/libs/knote.jar check       # validates config.json
-java -jar build/libs/knote.jar
+curl -LO https://github.com/nexus421/KNote/releases/latest/download/knote.jar
+curl -o config.json https://raw.githubusercontent.com/nexus421/KNote/master/config.example.json
+java -jar knote.jar key         # value for sessionSignKey
+java -jar knote.jar check       # validates config.json
+java -jar knote.jar
 ```
 
 Fill in `config.json` before the check: your public URL, the session key, the OIDC client and the address of your
@@ -42,7 +49,8 @@ that logs in there is admin, so limit the client to a user group
 For a local try without TLS, `http://localhost:8080` works as public URL. On its first start KNote creates an
 example sheet at `/example`.
 
-Tests: `./gradlew test`, also run on every push.
+To build the JAR yourself, run `./gradlew buildFatJar`, it ends up in `build/libs/`. Tests: `./gradlew test`, also
+run on every push.
 
 ## Documentation
 
