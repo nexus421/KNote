@@ -189,6 +189,7 @@ class PublicRoutesTest {
 
         assertEquals(HttpStatusCode.OK, response.status)
         assertContains(response.bodyAsText(), "href=\"/_auth/login\"")
+        assertContains(response.bodyAsText(), "<main class=\"narrow start\">")
     }
 
     @Test

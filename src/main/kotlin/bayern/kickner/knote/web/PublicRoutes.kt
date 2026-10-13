@@ -59,7 +59,7 @@ fun Route.startPage(config: AppConfig, clock: () -> Long) {
     get("/") {
         val loggedIn = call.sessions.get<AdminSession>()?.isValid(clock(), config.oidc.allowedSubjects) == true
         if (loggedIn) call.respondRedirect(ADMIN_PATH)
-        else call.respondPage(title = "KNote", narrow = true, header = false) { landing(call.texts) }
+        else call.respondPage(title = "KNote", narrow = true, startPage = true) { landing(call.texts) }
     }
 }
 

@@ -87,13 +87,14 @@ data class EditorValues(
  * place with raw HTML.
  *
  * @param narrow Narrow card for short pages such as forms and messages.
- * @param header False hides the header, for the start page, which shows the logo large itself.
+ * @param startPage The start page: no header (it shows the logo large itself) and the class `start` on `<main>`,
+ * which animates the light bar.
  */
 suspend fun ApplicationCall.respondPage(
     status: HttpStatusCode = HttpStatusCode.OK,
     title: String,
     narrow: Boolean = false,
-    header: Boolean = true,
+    startPage: Boolean = false,
     content: MAIN.() -> Unit,
 ) = respondHtml(status) {
     lang = texts.htmlLang
@@ -105,7 +106,7 @@ suspend fun ApplicationCall.respondPage(
         link(rel = "stylesheet", href = STYLESHEET_PATH)
     }
     body {
-        if (header) header(classes = "site") {
+        if (startPage.not()) header(classes = "site") {
             a(href = "/", classes = "brand") {
                 img(src = LOGO_PATH, alt = "") {
                     width = "32"
@@ -114,7 +115,7 @@ suspend fun ApplicationCall.respondPage(
                 span { +"KNote" }
             }
         }
-        main(classes = if (narrow) "narrow" else null) { content() }
+        main(classes = listOfNotNull("narrow".takeIf { narrow }, "start".takeIf { startPage }).joinToString(" ").ifEmpty { null }) { content() }
         if (application.attributes.getOrNull(PoweredByKey) != false) footer(classes = "site-footer") {
             +"${texts.poweredBy} "
             a(href = REPOSITORY_URL) { +"KNote" }
