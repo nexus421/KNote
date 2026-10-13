@@ -393,7 +393,7 @@ private fun FlowContent.sheetTable(t: Texts, sheets: List<Sheet>, query: String,
                     }
                     td { +sheet.title }
                     td { if (sheet.isProtected) span(classes = "badge") { +t.protectedMarker } }
-                    td(classes = "muted") { +formatTime(sheet.updated) }
+                    td(classes = "muted changed") { +formatTime(sheet.updated) }
                     td(classes = "actions") {
                         a(href = "$ADMIN_PATH/edit/${sheet.id}") { +t.edit }
                         a(href = "$ADMIN_PATH/duplicate/${sheet.id}") { +t.duplicate }

@@ -30,7 +30,7 @@
 | GET    | `/{path}.md`               | everyone |            | The raw Markdown as a file. For a protected sheet the password form.           |
 | POST   | `/{path}.md`               | everyone | `unlock`   | Field `password`. The raw Markdown of a protected sheet as a file.            |
 
-Admin pages address a sheet by its id, so sheet paths containing slashes never collide with `/edit` or `/delete`.
+Every GET also answers HEAD, without a body. Admin pages address a sheet by its id, so sheet paths containing slashes never collide with `/edit` or `/delete`.
 System paths start with `_`, which a sheet path can never contain. A sheet path consists of segments of `a` to `z`,
 `0` to `9` and the hyphen, separated by single slashes, at most 128 characters. Titles are 1 to 100 characters
 without control characters. The pages are English or German, see `language` in [configuration.md](configuration.md).

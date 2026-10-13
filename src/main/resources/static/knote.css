@@ -531,8 +531,26 @@ tbody tr:hover td {
     background: var(--hover);
 }
 
+/* Actions wrap onto a second line instead of widening the table */
 td.actions {
     display: table-cell;
+    line-height: 1.9;
+}
+
+td.actions a, td.actions form {
+    white-space: nowrap;
+}
+
+td.actions button.link {
+    text-decoration: none;
+}
+
+td.actions button.link:hover {
+    text-decoration: underline;
+}
+
+td.changed {
+    font-size: 0.88rem;
     white-space: nowrap;
 }
 
@@ -544,7 +562,7 @@ td a:hover {
     text-decoration: underline;
 }
 
-td.actions a + a {
+td.actions a + a, td.actions form + a {
     margin-left: 0.9rem;
 }
 
@@ -674,9 +692,13 @@ button.link:hover {
     background: var(--line);
 }
 
+/* Wide tables scroll inside the card instead of widening the page */
 .markdown table {
-    width: auto;
+    display: block;
+    width: max-content;
+    max-width: 100%;
     margin: 1rem 0;
+    overflow-x: auto;
 }
 
 .markdown th {
