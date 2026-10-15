@@ -9,23 +9,15 @@ import bayern.kickner.knote.settings.SettingsStore
 import bayern.kickner.knote.storage.Sheet
 import bayern.kickner.knote.storage.SheetContent
 import bayern.kickner.knote.storage.SheetStore
-import io.ktor.client.HttpClient
-import io.ktor.client.request.forms.submitForm
-import io.ktor.client.request.get
-import io.ktor.client.request.header
-import io.ktor.client.statement.HttpResponse
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.Url
-import io.ktor.http.parameters
-import io.ktor.server.request.receiveParameters
-import io.ktor.server.response.respond
-import io.ktor.server.response.respondText
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.routing
-import io.ktor.server.testing.ApplicationTestBuilder
+import io.ktor.client.*
+import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import io.ktor.server.testing.*
 import kotnexlib.ResultOf2
 import java.nio.file.Files
 import java.nio.file.Path
@@ -47,6 +39,7 @@ internal fun testConfig(
     unlockAttemptsPerMinute: Int = 100,
     loginAttemptsPerMinute: Int = 100,
     allowedSubjects: List<String> = listOf(ADMIN_SUB),
+    allowAnyAccount: Boolean = false,
     sessionHours: Int = 12,
     maxSheetBytes: Int = 1_048_576,
     language: String = "en",
@@ -69,6 +62,7 @@ internal fun testConfig(
         clientId = CLIENT_ID,
         clientSecret = CLIENT_SECRET,
         allowedSubjects = allowedSubjects,
+        allowAnyAccount = allowAnyAccount,
     ),
 )
 

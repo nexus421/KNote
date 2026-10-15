@@ -48,7 +48,7 @@ fun loadConfig(path: String, cpuCount: Int = Runtime.getRuntime().availableProce
  */
 fun configWarnings(config: AppConfig): List<String> {
     val placeholderSubject = config.oidc.allowedSubjects.any { it.startsWith(PLACEHOLDER_PREFIX) }
-    return if (placeholderSubject) listOf("oidc.allowedSubjects holds a placeholder, nobody can log in. Remove the field to allow every account of the OIDC provider.")
+    return if (placeholderSubject) listOf("oidc.allowedSubjects holds a placeholder, nobody can log in. Log in once, take the value from 'Login denied for sub=...' and replace the placeholder with it.")
     else emptyList()
 }
 
@@ -86,6 +86,11 @@ private fun validate(config: AppConfig, cpuCount: Int): List<String> {
     issues += requiredValue("oidc.clientId", oidc.clientId)
     issues += requiredValue("oidc.clientSecret", oidc.clientSecret)
     if (oidc.allowedSubjects.any { it.isBlank() }) issues += "oidc.allowedSubjects must not contain blank entries"
+    if (oidc.allowedSubjects.isEmpty() && oidc.allowAnyAccount.not())
+        issues += "oidc.allowedSubjects is empty. List the sub values of the admins, or set oidc.allowAnyAccount to true " +
+                "to let every account of the OIDC provider in (only with the client restricted to a group at the provider)"
+    if (oidc.allowedSubjects.isNotEmpty() && oidc.allowAnyAccount)
+        issues += "oidc.allowAnyAccount is true, but oidc.allowedSubjects is not empty. Set only one of them"
 
     return issues
 }

@@ -69,9 +69,13 @@ area when you no longer need it, it does not come back. `check` changes nothing 
 
 ## 5. Who may log in
 
-Every account that completes the login at the OIDC provider is admin. Manage access there: in Pocket ID, restrict
-the KNote client to a user group, otherwise every Pocket ID account can log in. To limit access in KNote as well,
-list the allowed `sub` values in `oidc.allowedSubjects`. A denied login logs `Login denied for sub=<value>`.
+Only the accounts listed in `oidc.allowedSubjects` are admin. To find your `sub`, log in once with the placeholder
+from the example config: the login is denied and the log shows `Login denied for sub=<value>`. Replace the
+placeholder with that value and restart KNote.
+
+To let every account of the OIDC provider in, leave `allowedSubjects` out and set `"allowAnyAccount": true`. Do this
+only with the KNote client restricted to a user group at the provider (in Pocket ID: the client's allowed user
+groups), otherwise every Pocket ID account is admin. Without either setting, KNote refuses to start.
 
 ## Checks after the deployment
 

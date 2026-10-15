@@ -29,6 +29,7 @@ internal fun configJson(
     clientSecret: String = "secret-value",
     // null leaves the field out
     allowedSubjects: String? = """["sub-1"]""",
+    allowAnyAccount: Boolean? = null,
 ): String {
     val optional = listOfNotNull(
         listenHost?.let { "\"listenHost\": \"$it\"" },
@@ -53,7 +54,9 @@ internal fun configJson(
             "tokenUrl": "$tokenUrl",
             "userinfoUrl": "$userinfoUrl",
             "clientId": "$clientId",
-            "clientSecret": "$clientSecret"${allowedSubjects?.let { ",\n\"allowedSubjects\": $it" }.orEmpty()}
+            "clientSecret": "$clientSecret"${
+        allowedSubjects?.let { ",\n\"allowedSubjects\": $it" }.orEmpty()
+    }${allowAnyAccount?.let { ",\n\"allowAnyAccount\": $it" }.orEmpty()}
           }
         }
     """.trimIndent()
@@ -98,13 +101,36 @@ class ConfigLoaderTest {
     }
 
     @Test
-    fun `allowedSubjects is optional`() {
-        val missing = assertIs<ResultOf2.Success<AppConfig>>(load(configJson(allowedSubjects = null))).value
-        val empty = assertIs<ResultOf2.Success<AppConfig>>(load(configJson(allowedSubjects = "[]"))).value
+    fun `without allowedSubjects the config is rejected unless allowAnyAccount is set`() {
+        listOf(
+            configJson(allowedSubjects = null),
+            configJson(allowedSubjects = "[]"),
+            configJson(allowedSubjects = null, allowAnyAccount = false)
+        )
+            .forEach { json ->
+                assertContains(
+                    failure(load(json)),
+                    "oidc.allowedSubjects is empty. List the sub values of the admins, or set oidc.allowAnyAccount to true"
+                )
+            }
 
-        assertEquals(emptyList(), missing.oidc.allowedSubjects)
-        assertEquals(emptyList(), empty.oidc.allowedSubjects)
-        assertTrue(configWarnings(missing).isEmpty())
+        val anyAccount = assertIs<ResultOf2.Success<AppConfig>>(
+            load(
+                configJson(
+                    allowedSubjects = null,
+                    allowAnyAccount = true
+                )
+            )
+        ).value
+        assertTrue(anyAccount.oidc.allowAnyAccount)
+        assertEquals(emptyList(), anyAccount.oidc.allowedSubjects)
+        assertTrue(configWarnings(anyAccount).isEmpty())
+        assertFalse(assertIs<ResultOf2.Success<AppConfig>>(load(configJson())).value.oidc.allowAnyAccount)
+    }
+
+    @Test
+    fun `allowAnyAccount together with allowedSubjects is rejected`() {
+        assertContains(failure(load(configJson(allowAnyAccount = true))), "Set only one of them")
     }
 
     @Test

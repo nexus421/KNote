@@ -1,11 +1,12 @@
 package bayern.kickner.knote.auth
 
 import bayern.kickner.knote.config.AppConfig
+import bayern.kickner.knote.config.OidcConfig
 import bayern.kickner.knote.i18n.texts
 import bayern.kickner.knote.web.PageLink
 import bayern.kickner.knote.web.respondMessage
-import io.ktor.server.application.ApplicationCall
 import io.ktor.http.*
+import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.sessions.*
@@ -28,21 +29,21 @@ const val ADMIN_AUTH = "admin"
 @Serializable
 data class AdminSession(val sub: String, val expiresAt: Long, val name: String = "") {
     /** True while the login has not expired and [sub] is still an admin (see [isAdmin]). */
-    fun isValid(now: Long, allowedSubjects: List<String>): Boolean = expiresAt > now && isAdmin(sub, allowedSubjects)
+    fun isValid(now: Long, oidc: OidcConfig): Boolean = expiresAt > now && isAdmin(sub, oidc)
 }
 
 /**
- * True if [sub] may use the admin area. With empty [allowedSubjects] that is every account the OIDC provider lets
- * through, so access is managed at the provider alone. Otherwise only the listed accounts.
+ * True if [sub] may use the admin area: a listed `allowedSubjects` value, or any account with `allowAnyAccount`.
+ * An empty list alone lets nobody in, the config loader rejects it anyway.
  */
-fun isAdmin(sub: String, allowedSubjects: List<String>): Boolean = allowedSubjects.isEmpty() || sub in allowedSubjects
+fun isAdmin(sub: String, oidc: OidcConfig): Boolean = oidc.allowAnyAccount || sub in oidc.allowedSubjects
 
 /**
  * True if the request carries a valid admin login. For pages outside the admin area that offer admin extras, such as
  * the edit link on a sheet. Grants nothing by itself, every admin route checks the login again.
  */
 fun ApplicationCall.hasAdminLogin(config: AppConfig, clock: () -> Long): Boolean =
-    sessions.get<AdminSession>()?.isValid(clock(), config.oidc.allowedSubjects) == true
+    sessions.get<AdminSession>()?.isValid(clock(), config.oidc) == true
 
 /**
  * Registers the admin cookie: HttpOnly, Secure and `SameSite=Lax`, signed with HMAC-SHA256. Ktor does not check
@@ -69,7 +70,7 @@ fun SessionsConfig.adminCookie(config: AppConfig) {
  */
 fun AuthenticationConfig.adminSession(config: AppConfig, clock: () -> Long) {
     session<AdminSession>(ADMIN_AUTH) {
-        validate { session -> session.takeIf { it.isValid(clock(), config.oidc.allowedSubjects) } }
+        validate { session -> session.takeIf { it.isValid(clock(), config.oidc) } }
         challenge {
             if (call.request.local.method == HttpMethod.Get) call.respondRedirect(LOGIN_PATH)
             else call.respondMessage(

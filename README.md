@@ -17,7 +17,7 @@ through OIDC.
 * Every sheet shows its last change and can be downloaded as Markdown, with a clean print layout
 * Any path per sheet, e.g. `https://notes.example.org/projects/knote`
 * Optional password per sheet, content encrypted with AES-GCM
-* Admin login through an OIDC provider such as Pocket ID, access is managed there
+* Admin login through an OIDC provider such as Pocket ID, limited to the listed accounts
 * Search, sort, duplicate and disable sheets in the admin area, QR code with logo for every sheet
 * Optional list of sheets on the start page, chosen in the settings
 * Rate limits on password attempts and login
@@ -43,8 +43,7 @@ java -jar knote.jar
 ```
 
 Fill in `config.json` before the check: your public URL, the session key, the OIDC client and the address of your
-reverse proxy. Register KNote at your OIDC provider with the callback `<public URL>/_auth/callback`. Every account
-that logs in there is admin, so limit the client to a user group
+reverse proxy and who is admin. Register KNote at your OIDC provider with the callback `<public URL>/_auth/callback`
 (see [Deployment](docs/deployment.md#5-who-may-log-in)).
 For a local try without TLS, `http://localhost:8080` works as public URL. On its first start KNote creates an
 example sheet at `/example`.

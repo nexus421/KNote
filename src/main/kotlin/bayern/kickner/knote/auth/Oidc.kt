@@ -3,6 +3,7 @@ package bayern.kickner.knote.auth
 import bayern.kickner.klogger.KLogger
 import bayern.kickner.klogger.staticLog
 import bayern.kickner.knote.config.AppConfig
+import bayern.kickner.knote.config.OidcConfig
 import bayern.kickner.knote.i18n.texts
 import bayern.kickner.knote.web.*
 import io.ktor.client.*
@@ -54,7 +55,7 @@ sealed interface LoginDecision {
     /** [sub] is an admin. [name] is the display name from the provider, empty if it sent none. */
     data class Allowed(val sub: String, val name: String = "") : LoginDecision
 
-    /** [sub] logged in at the provider but is not in the configured `allowedSubjects`. */
+    /** [sub] logged in at the provider but is not in the configured `allowedSubjects` (and `allowAnyAccount` is off). */
     data class Denied(val sub: String) : LoginDecision
 
     /** The provider did not answer as expected. [reason] is safe to log. */
@@ -104,14 +105,14 @@ private const val MAX_NAME_LENGTH = 60
  * Reads `sub` from the userinfo response [body] and checks it with [isAdmin]. The display name is `name`, or
  * `preferred_username` if the provider sent no name (both need the scope `profile`).
  */
-fun evaluateUserinfo(body: String, allowedSubjects: List<String>): LoginDecision {
+fun evaluateUserinfo(body: String, oidc: OidcConfig): LoginDecision {
     val userinfo = runCatching { Json.parseToJsonElement(body).jsonObject }.getOrNull()
     fun claim(key: String) = runCatching { userinfo?.get(key)?.jsonPrimitive?.contentOrNull }.getOrNull()?.trim()
     val sub = claim("sub")
     val name = (claim("name")?.ifEmpty { null } ?: claim("preferred_username")).orEmpty().take(MAX_NAME_LENGTH)
     return when {
         sub.isNullOrBlank() -> LoginDecision.Failed("userinfo response has no sub")
-        isAdmin(sub, allowedSubjects) -> LoginDecision.Allowed(sub, name)
+        isAdmin(sub, oidc) -> LoginDecision.Allowed(sub, name)
         else -> LoginDecision.Denied(sub)
     }
 }
@@ -187,7 +188,7 @@ private suspend fun ApplicationCall.completeLogin(config: AppConfig, httpClient:
     val decision = when {
         token == null -> LoginDecision.Failed("no access token")
         else -> when (val userinfo = fetchUserinfo(httpClient, config.oidc.userinfoUrl, token.accessToken)) {
-            is ResultOf2.Success -> evaluateUserinfo(userinfo.value, config.oidc.allowedSubjects)
+            is ResultOf2.Success -> evaluateUserinfo(userinfo.value, config.oidc)
             is ResultOf2.Failure -> LoginDecision.Failed(userinfo.value)
         }
     }

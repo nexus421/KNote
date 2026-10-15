@@ -21,13 +21,23 @@ class OidcTest {
 
     @Test
     fun `userinfo decides by sub`() {
-        val allowed = listOf("sub-1")
+        val allowed = testConfig(allowedSubjects = listOf("sub-1")).oidc
 
         assertEquals(LoginDecision.Allowed("sub-1", "A"), evaluateUserinfo("""{"sub": "sub-1", "name": "A"}""", allowed))
         assertEquals(LoginDecision.Allowed("sub-1", "a.user"), evaluateUserinfo("""{"sub": "sub-1", "preferred_username": "a.user"}""", allowed))
         assertEquals(LoginDecision.Allowed("sub-1", "x".repeat(60)), evaluateUserinfo("""{"sub": "sub-1", "name": "${"x".repeat(80)}"}""", allowed))
         assertEquals(LoginDecision.Denied("sub-2"), evaluateUserinfo("""{"sub": "sub-2"}""", allowed))
-        assertEquals(LoginDecision.Allowed("sub-2"), evaluateUserinfo("""{"sub": "sub-2"}""", emptyList()))
+        assertEquals(
+            LoginDecision.Denied("sub-2"),
+            evaluateUserinfo("""{"sub": "sub-2"}""", testConfig(allowedSubjects = emptyList()).oidc)
+        )
+        assertEquals(
+            LoginDecision.Allowed("sub-2"),
+            evaluateUserinfo(
+                """{"sub": "sub-2"}""",
+                testConfig(allowedSubjects = emptyList(), allowAnyAccount = true).oidc
+            )
+        )
         listOf("""{"name": "A"}""", """{"sub": null}""", """{"sub": ""}""", """{"sub": {}}""", "not json", "[]").forEach { body ->
             assertEquals(LoginDecision.Failed("userinfo response has no sub"), evaluateUserinfo(body, allowed), body)
         }
@@ -36,12 +46,15 @@ class OidcTest {
     @Test
     fun `a session is valid until it expires and while its sub is configured`() {
         val session = AdminSession("sub-1", expiresAt = 1000)
+        fun oidc(subjects: List<String>, anyAccount: Boolean = false) =
+            testConfig(allowedSubjects = subjects, allowAnyAccount = anyAccount).oidc
 
-        assertTrue(session.isValid(999, listOf("sub-1")))
-        assertFalse(session.isValid(1000, listOf("sub-1")))
-        assertFalse(session.isValid(999, listOf("sub-2")))
-        assertTrue(session.isValid(999, emptyList()))
-        assertFalse(session.isValid(1000, emptyList()))
+        assertTrue(session.isValid(999, oidc(listOf("sub-1"))))
+        assertFalse(session.isValid(1000, oidc(listOf("sub-1"))))
+        assertFalse(session.isValid(999, oidc(listOf("sub-2"))))
+        assertFalse(session.isValid(999, oidc(emptyList())))
+        assertTrue(session.isValid(999, oidc(emptyList(), anyAccount = true)))
+        assertFalse(session.isValid(1000, oidc(emptyList(), anyAccount = true)))
     }
 
     @Test
@@ -141,9 +154,12 @@ class OidcTest {
     }
 
     @Test
-    fun `without allowedSubjects every account of the provider is admin`() = testApplication {
+    fun `with allowAnyAccount every account of the provider is admin`() = testApplication {
         val client =
-            knoteApp(config = testConfig(allowedSubjects = emptyList()), userinfoBody = """{"sub": "any-account"}""")
+            knoteApp(
+                config = testConfig(allowedSubjects = emptyList(), allowAnyAccount = true),
+                userinfoBody = """{"sub": "any-account"}"""
+            )
 
         val cookie = client.login()
 
