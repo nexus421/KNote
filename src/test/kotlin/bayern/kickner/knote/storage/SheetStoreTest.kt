@@ -7,6 +7,8 @@ import bayern.kickner.knote.tempDir
 import kotnexlib.ResultOf2
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.attribute.PosixFilePermission
+import java.nio.file.attribute.PosixFilePermissions
 import kotlin.io.path.listDirectoryEntries
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
@@ -148,11 +150,22 @@ class SheetStoreTest {
     }
 
     @Test
-    fun `a missing directory is created`() {
+    fun `a missing directory is created for the owner only, parents with the default`() {
         val missing = tempDir().resolve("data/sheets")
 
         assertIs<ResultOf2.Success<SheetStore>>(SheetStore.load(missing))
         assertTrue(Files.isDirectory(missing))
+        assertEquals("rwx------", PosixFilePermissions.toString(Files.getPosixFilePermissions(missing)))
+        assertTrue(PosixFilePermission.OTHERS_EXECUTE in Files.getPosixFilePermissions(missing.parent))
+    }
+
+    @Test
+    fun `an existing directory keeps its permissions`() {
+        val dir = tempDir().resolve("sheets")
+        Files.createDirectory(dir, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwxr-x---")))
+
+        assertIs<ResultOf2.Success<SheetStore>>(SheetStore.load(dir))
+        assertEquals("rwxr-x---", PosixFilePermissions.toString(Files.getPosixFilePermissions(dir)))
     }
 
     @Test

@@ -20,6 +20,7 @@ import bayern.kickner.knote.settings.SettingsStore
 import bayern.kickner.knote.i18n.Language
 import bayern.kickner.knote.i18n.TextsKey
 import bayern.kickner.knote.storage.SheetStore
+import bayern.kickner.knote.storage.createPrivateDirectory
 import bayern.kickner.knote.storage.openStore
 import bayern.kickner.knote.web.PageSettings
 import bayern.kickner.knote.web.PageSettingsKey
@@ -148,6 +149,10 @@ fun main(args: Array<String>) {
     if (args.contains("check") && Files.notExists(sheetDir)) {
         staticLog(KLogger.Level.INFO, TAG) { "Config file ${File(configPath).absolutePath} is valid. $sheetDir does not exist yet, the first start creates it with an example sheet${if (existingKey == null) ", and $keyFile" else ""}" }
         return
+    }
+    runCatching { createPrivateDirectory(Path.of(config.dataDir)) }.onFailure { error ->
+        staticLog(KLogger.Level.ERROR, TAG) { "${Path.of(config.dataDir).toAbsolutePath()} cannot be created: ${error.message}" }
+        exitProcess(EXIT_DATA_ERROR)
     }
     val store = when (val result = openStore(sheetDir)) {
         is ResultOf2.Success -> result.value

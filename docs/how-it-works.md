@@ -42,7 +42,9 @@ the file, so no URL ever becomes a file name. All sheets are kept in memory and 
 change is written to a temp file in the same directory and moved over the old file atomically, and only then
 applied in memory. At startup every file is checked: unknown keys, a file name that does not match the id, an
 invalid path and a path used twice are errors (exit code 65). Leftover `*.tmp` files are ignored. If the directory
-does not exist yet, the first start creates it with an English example sheet at `/example`.
+does not exist yet, the first start creates it with an English example sheet at `/example`. KNote creates `dataDir` and the
+sheet directory readable by the owner only (700) and writes every file with 600. Directories that already exist keep
+their permissions.
 
 Settings made in the admin area live in `<dataDir>/settings.json`, written the same atomic way. A missing file
 means the defaults, a broken one stops the start with exit code 65. The start page lists no sheets by default. In

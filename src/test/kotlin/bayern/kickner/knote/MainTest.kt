@@ -4,6 +4,7 @@ import bayern.kickner.knote.config.configJson
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
+import java.nio.file.attribute.PosixFilePermissions
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.time.Instant
@@ -125,7 +126,7 @@ class MainTest {
     }
 
     @Test
-    fun `the first start creates the session key, owner only, and later starts keep it`() {
+    fun `the first start creates data directories and session key for the owner only, later starts keep the key`() {
         val directory = directoryWithConfig()
         val keyFile = File(directory, "data/session.key")
         ServerSocket(0, 50, InetAddress.getLoopbackAddress()).use { taken ->
@@ -139,6 +140,9 @@ class MainTest {
             assertContains(first.stdout, "First start: created the session key in ${keyFile.absolutePath}")
             assertTrue(Regex("[0-9a-f]{64}\n").matches(key), key)
             assertEquals(setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE), Files.getPosixFilePermissions(keyFile.toPath()))
+            listOf("data", "data/sheets").forEach { dir ->
+                assertEquals("rwx------", PosixFilePermissions.toString(Files.getPosixFilePermissions(File(directory, dir).toPath())), dir)
+            }
             assertFalse(second.stdout.contains("created the session key"), second.stdout)
             assertEquals(key, keyFile.readText())
         }
