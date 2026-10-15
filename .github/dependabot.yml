@@ -1,0 +1,11 @@
+# Keeps the GitHub Actions in .github/workflows up to date. The workflows pin every action to a commit, because a
+# tag like v4 can be moved to other code. Dependabot opens at most one pull request per month with all updates.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
