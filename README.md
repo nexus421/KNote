@@ -55,6 +55,7 @@ run on every push.
 * [Configuration and command line](docs/configuration.md)
 * [Deployment](docs/deployment.md): systemd, reverse proxy, OIDC client, who may log in
 * [How it works](docs/how-it-works.md): endpoints, encryption, login, security
+* [Security review](docs/security.md): audit findings, what was fixed and what was left open, updating from 1.2.0
 
 ## Note on AI
 
