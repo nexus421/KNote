@@ -66,6 +66,18 @@ internal fun testConfig(
     ),
 )
 
+/**
+ * A text or attribute value of a page read back the way a browser does, for the entities kotlinx.html writes.
+ * `&amp;` last, so `&amp;lt;` becomes `&lt;` and not `<`.
+ */
+internal fun String.htmlDecoded(): String = replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"").replace("&amp;", "&")
+
+/** Content that kotlinx.html alone would change, see `keepBackslashAmp`. */
+internal const val BACKSLASH_AMP_TEXT = "LaTeX a \\& b, entity x \\&amp; y, double \\\\& z, <b> \"q\" & end \\&"
+
+/** A sheet password that kotlinx.html alone would change in a hidden field. */
+internal const val BACKSLASH_AMP_PASSWORD = "pass\\&wort-1234"
+
 internal fun tempDir(): Path = Files.createTempDirectory("knote-test").also { it.toFile().deleteOnExit() }
 
 /** Settings in a fresh temporary directory, with the defaults. */

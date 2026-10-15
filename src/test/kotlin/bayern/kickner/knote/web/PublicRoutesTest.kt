@@ -1,6 +1,9 @@
 package bayern.kickner.knote.web
 
+import bayern.kickner.knote.BACKSLASH_AMP_PASSWORD
+import bayern.kickner.knote.BACKSLASH_AMP_TEXT
 import bayern.kickner.knote.crypto.encryptContent
+import bayern.kickner.knote.htmlDecoded
 import bayern.kickner.knote.emptyStore
 import bayern.kickner.knote.knoteApp
 import bayern.kickner.knote.plainSheet
@@ -253,6 +256,24 @@ class PublicRoutesTest {
 
         assertContains(page, "<form action=\"/privat/notiz.md\" method=\"post\" class=\"no-print\">")
         assertContains(page, "name=\"password\" value=\"$PASSWORD\"")
+    }
+
+    @Test
+    fun `a password with backslash ampersand still downloads, and the title keeps it`() = testApplication {
+        val store = emptyStore().apply {
+            save(plainSheet("tricky", title = "A \\& B").copy(content = encryptContent(BACKSLASH_AMP_TEXT, BACKSLASH_AMP_PASSWORD)))
+        }
+        val client = knoteApp(store)
+
+        val page = client.unlock("tricky", BACKSLASH_AMP_PASSWORD).bodyAsText()
+        val hidden = Regex("name=\"password\" value=\"([^\"]*)\"").find(page)!!.groupValues[1].htmlDecoded()
+        val file = client.unlock("tricky.md", hidden)
+
+        assertEquals(BACKSLASH_AMP_PASSWORD, hidden)
+        assertContains(page.htmlDecoded(), "<h1>A \\& B</h1>")
+        assertContains(page.htmlDecoded(), "<title>A \\& B</title>")
+        assertEquals(HttpStatusCode.OK, file.status)
+        assertEquals(BACKSLASH_AMP_TEXT, file.bodyAsText())
     }
 
     @Test

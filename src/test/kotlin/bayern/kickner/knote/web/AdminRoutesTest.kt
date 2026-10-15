@@ -1,6 +1,9 @@
 package bayern.kickner.knote.web
 
 import bayern.kickner.knote.ADMIN_SUB
+import bayern.kickner.knote.BACKSLASH_AMP_PASSWORD
+import bayern.kickner.knote.BACKSLASH_AMP_TEXT
+import bayern.kickner.knote.htmlDecoded
 import bayern.kickner.knote.FIXED_NOW
 import bayern.kickner.knote.adminGet
 import bayern.kickner.knote.adminPost
@@ -71,7 +74,7 @@ private class Admin(val client: HttpClient, val cookie: String, val store: Sheet
     suspend fun unlock(sheet: Sheet, password: String = OLD_PASSWORD): Array<Pair<String, String>> {
         val editor = post("/_admin/edit/${sheet.id}/unlock", "password" to password).bodyAsText()
         return listOf("currentPassword", "unlockProof").map { name ->
-            name to assertNotNull(Regex("name=\"$name\" value=\"([^\"]*)\"").find(editor), "no $name in the editor").groupValues[1]
+            name to assertNotNull(Regex("name=\"$name\" value=\"([^\"]*)\"").find(editor), "no $name in the editor").groupValues[1].htmlDecoded()
         }.toTypedArray()
     }
 }
@@ -83,7 +86,16 @@ private suspend fun ApplicationTestBuilder.admin(vararg sheets: Sheet, config: A
     return Admin(client, client.login(), store, dir)
 }
 
-private fun protectedSheet(path: String = "privat") = plainSheet(path).copy(content = encryptContent("old content", OLD_PASSWORD))
+private fun protectedSheet(path: String = "privat", password: String = OLD_PASSWORD) =
+    plainSheet(path).copy(content = encryptContent("old content", password))
+
+/** The value of the field [name] in [page], read back like a browser. */
+private fun fieldValue(page: String, name: String): String =
+    assertNotNull(Regex("name=\"$name\"[^>]*value=\"([^\"]*)\"").find(page), "no $name in the page").groupValues[1].htmlDecoded()
+
+/** The content of the editor's textarea in [page], read back like a browser (which drops the first line break). */
+private fun textareaContent(page: String): String =
+    assertNotNull(Regex("<textarea[^>]*>\n(.*?)</textarea>", RegexOption.DOT_MATCHES_ALL).find(page), "no textarea").groupValues[1].htmlDecoded()
 
 class AdminRoutesTest {
 
@@ -455,6 +467,46 @@ class AdminRoutesTest {
         assertContains(body, "name=\"updated\" value=\"${sheet.updated}\"")
         assertFalse(body.contains("currentPassword"))
         assertFalse(body.contains("unlockProof"))
+    }
+
+    @Test
+    fun `backslash ampersand survives editor and save unchanged`() = testApplication {
+        val title = "Titel \\& Co"
+        val sheet = plainSheet("einkauf", markdown = BACKSLASH_AMP_TEXT, title = title)
+        val admin = admin(sheet)
+
+        val editor = admin.get("/_admin/edit/${sheet.id}").bodyAsText()
+        val overview = admin.get("/_admin").bodyAsText()
+
+        assertEquals(BACKSLASH_AMP_TEXT, textareaContent(editor))
+        assertEquals(title, fieldValue(editor, "title"))
+        assertContains(overview.htmlDecoded(), "<td>$title</td>")
+        val response = admin.save(sheet, "protection" to "none", "title" to fieldValue(editor, "title"), "markdown" to textareaContent(editor))
+        assertEquals(HttpStatusCode.SeeOther, response.status)
+        val saved = assertNotNull(admin.store.find("einkauf"))
+        assertEquals(SheetContent.Plain(BACKSLASH_AMP_TEXT), saved.content)
+        assertEquals(title, saved.title)
+    }
+
+    @Test
+    fun `a password with backslash ampersand keeps working in editor, preview and copy`() = testApplication {
+        val sheet = protectedSheet(password = BACKSLASH_AMP_PASSWORD)
+        val admin = admin(sheet)
+
+        val kept = admin.save(sheet, "protection" to "keep", *admin.unlock(sheet, BACKSLASH_AMP_PASSWORD))
+        assertEquals(HttpStatusCode.SeeOther, kept.status)
+        assertEquals("new content", assertIs<ResultOf2.Success<String>>(admin.store.decrypt("privat", BACKSLASH_AMP_PASSWORD)).value)
+
+        val saved = assertNotNull(admin.store.find("privat"))
+        val copy = admin.post("/_admin/duplicate/${saved.id}/unlock", "password" to BACKSLASH_AMP_PASSWORD).bodyAsText()
+        assertEquals(BACKSLASH_AMP_PASSWORD, fieldValue(copy, "password"))
+        assertEquals(BACKSLASH_AMP_PASSWORD, fieldValue(copy, "passwordRepeat"))
+
+        val fields = arrayOf("path" to "kopie", "title" to "Kopie", "markdown" to "copy", "password" to fieldValue(copy, "password"), "passwordRepeat" to fieldValue(copy, "passwordRepeat"))
+        val preview = admin.post("/_admin/new", *fields, "action" to "preview").bodyAsText()
+        assertEquals(BACKSLASH_AMP_PASSWORD, fieldValue(preview, "password"))
+        assertEquals(HttpStatusCode.SeeOther, admin.post("/_admin/new", *fields).status)
+        assertEquals("copy", assertIs<ResultOf2.Success<String>>(admin.store.decrypt("kopie", BACKSLASH_AMP_PASSWORD)).value)
     }
 
     @Test

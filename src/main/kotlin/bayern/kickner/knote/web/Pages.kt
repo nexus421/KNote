@@ -92,6 +92,15 @@ data class EditorValues(
 )
 
 /**
+ * [this] prepared for kotlinx.html, so it reaches the browser unchanged. kotlinx.html (escapeAppend in stream.kt)
+ * deliberately writes `\&` as a bare `&` and drops the backslash: the editor showed `a \& b` as `a & b` and saved it
+ * that way, and a password with `\&` in a hidden field no longer matched. Written as `\\&amp;`, kotlinx.html emits
+ * `\&amp;`, which the browser reads as `\&`. Works in text and attribute values alike. Every user value that ends up
+ * in a page goes through it.
+ */
+internal fun String.keepBackslashAmp(): String = replace("\\&", "\\\\&amp;")
+
+/**
  * Responds with a complete page: shared head, a header with logo, [content] inside `<main>` and the optional
  * "Powered by" footer, in the configured language. kotlinx.html escapes every text, [markdownArticle] is the only
  * place with raw HTML.
@@ -112,8 +121,8 @@ suspend fun ApplicationCall.respondPage(
     head {
         meta(charset = "utf-8")
         meta(name = "viewport", content = "width=device-width, initial-scale=1")
-        title(title)
-        linkPreview(title, settings?.publicBaseUrl)
+        title(title.keepBackslashAmp())
+        linkPreview(title.keepBackslashAmp(), settings?.publicBaseUrl)
         link(rel = "icon", type = "image/png", href = FAVICON_PATH)
         link(rel = "stylesheet", href = STYLESHEET_PATH)
     }
@@ -153,7 +162,7 @@ private fun HEAD.linkPreview(title: String, publicBaseUrl: String?) {
 /** Responds with a page that only shows [heading], [text] and an optional [link]. Used for every error. */
 suspend fun ApplicationCall.respondMessage(status: HttpStatusCode, heading: String, text: String, link: PageLink? = null) =
     respondPage(status, heading, narrow = true) {
-        h1 { +heading }
+        h1 { +heading.keepBackslashAmp() }
         p { +text }
         if (link != null) p { a(href = link.href) { +link.label } }
     }
@@ -188,7 +197,7 @@ fun MAIN.landing(t: Texts, listed: List<Sheet>) {
         ul {
             listed.forEach { sheet ->
                 li {
-                    a(href = "/${sheet.path}") { +sheet.title }
+                    a(href = "/${sheet.path}") { +sheet.title.keepBackslashAmp() }
                     if (sheet.isProtected) span(classes = "badge") { +t.protectedMarker }
                     span(classes = "muted path") { +"/${sheet.path}" }
                 }
@@ -243,7 +252,7 @@ sealed interface MarkdownDownload {
  * @param editHref Link to the editor, only for a logged in admin.
  */
 fun MAIN.sheetView(t: Texts, title: String, html: String, changed: String, download: MarkdownDownload, editHref: String? = null) {
-    h1 { +title }
+    h1 { +title.keepBackslashAmp() }
     markdownArticle(html)
     div(classes = "sheet-meta") {
         span(classes = "muted") { +"${t.lastChanged}: $changed" }
@@ -256,7 +265,7 @@ private fun FlowContent.sheetActions(t: Texts, download: MarkdownDownload, editH
     when (download) {
         is MarkdownDownload.Link -> a(href = download.href, classes = "no-print") { +t.downloadMarkdown }
         is MarkdownDownload.Form -> form(action = download.action, method = FormMethod.post, classes = "no-print") {
-            hiddenInput(name = "password") { value = download.password }
+            hiddenInput(name = "password") { value = download.password.keepBackslashAmp() }
             button(type = ButtonType.submit, classes = "link") { +t.downloadMarkdown }
         }
     }
@@ -276,7 +285,7 @@ private fun FlowContent.markdownArticle(html: String) {
  * @param error Shown above the field, e.g. after a wrong password.
  */
 fun MAIN.unlockForm(t: Texts, heading: String, hint: String, action: String, error: String? = null) {
-    h1 { +heading }
+    h1 { +heading.keepBackslashAmp() }
     p { +hint }
     if (error != null) p(classes = "error") { +error }
     form(action = action, method = FormMethod.post) {
@@ -328,14 +337,14 @@ enum class SheetOrder(val param: String) {
 fun MAIN.overview(t: Texts, sheets: List<Sheet>, query: String, order: SheetOrder, adminName: String, formatTime: (Long) -> String) {
     div(classes = "bar") {
         h1 { +t.sheets }
-        if (adminName.isNotBlank()) span(classes = "muted who") { +t.loggedInAs(adminName) }
+        if (adminName.isNotBlank()) span(classes = "muted who") { +t.loggedInAs(adminName).keepBackslashAmp() }
         a(href = "$ADMIN_PATH/new", classes = "button") { +t.newSheet }
         a(href = "$ADMIN_PATH/settings", classes = "button secondary") { +t.settings }
         form(action = LOGOUT_PATH, method = FormMethod.post) { submitInput(classes = "secondary") { value = t.logOut } }
     }
     form(action = ADMIN_PATH, method = FormMethod.get, classes = "search") {
         input(type = InputType.search, name = "q") {
-            value = query
+            value = query.keepBackslashAmp()
             placeholder = t.searchPlaceholder
             attributes["aria-label"] = t.search
         }
@@ -391,7 +400,7 @@ private fun FlowContent.sheetTable(t: Texts, sheets: List<Sheet>, query: String,
                             span(classes = "badge off") { +t.disabledMarker }
                         }
                     }
-                    td { +sheet.title }
+                    td { +sheet.title.keepBackslashAmp() }
                     td { if (sheet.isProtected) span(classes = "badge") { +t.protectedMarker } }
                     td(classes = "muted changed") { +formatTime(sheet.updated) }
                     td(classes = "actions") {
@@ -435,7 +444,7 @@ fun MAIN.editor(t: Texts, target: EditorTarget, values: EditorValues, errors: Li
     form(action = action, method = FormMethod.post) {
         if (target is EditorTarget.Existing) {
             hiddenInput(name = "updated") { value = target.updated.toString() }
-            if (target.currentPassword != null) hiddenInput(name = "currentPassword") { value = target.currentPassword }
+            if (target.currentPassword != null) hiddenInput(name = "currentPassword") { value = target.currentPassword.keepBackslashAmp() }
             if (target.unlockProof != null) hiddenInput(name = "unlockProof") { value = target.unlockProof }
         }
         label {
@@ -458,7 +467,7 @@ fun MAIN.editor(t: Texts, target: EditorTarget, values: EditorValues, errors: Li
             id = "title"
             required = true
             maxLength = MAX_TITLE_LENGTH.toString()
-            value = values.title
+            value = values.title.keepBackslashAmp()
         }
         label {
             htmlFor = "markdown"
@@ -468,7 +477,7 @@ fun MAIN.editor(t: Texts, target: EditorTarget, values: EditorValues, errors: Li
             id = "markdown"
             name = "markdown"
             // The HTML parser drops one line break right after <textarea>, this one keeps a leading line break of the content
-            +"\n${values.markdown}"
+            +"\n${values.markdown.keepBackslashAmp()}"
         }
         protectionFields(t, target, values, minPasswordLength)
         div(classes = "actions") {
@@ -509,7 +518,7 @@ private fun FORM.protectionFields(t: Texts, target: EditorTarget, values: Editor
             id = "password"
             minLength = minPasswordLength.toString()
             autoComplete = "new-password"
-            value = values.password
+            value = values.password.keepBackslashAmp()
         }
         label {
             htmlFor = "passwordRepeat"
@@ -519,7 +528,7 @@ private fun FORM.protectionFields(t: Texts, target: EditorTarget, values: Editor
             id = "passwordRepeat"
             minLength = minPasswordLength.toString()
             autoComplete = "new-password"
-            value = values.passwordRepeat
+            value = values.passwordRepeat.keepBackslashAmp()
         }
     }
 }
@@ -531,7 +540,7 @@ private fun FORM.protectionFields(t: Texts, target: EditorTarget, values: Editor
  */
 fun MAIN.qrPage(t: Texts, sheet: Sheet, url: String) {
     val image = "$ADMIN_PATH/qr/${sheet.id}/qr.png"
-    h1 { +t.qrHeading(sheet.title) }
+    h1 { +t.qrHeading(sheet.title).keepBackslashAmp() }
     div(classes = "qr") {
         img(src = image, alt = url) {
             width = "260"
@@ -557,7 +566,7 @@ fun MAIN.deleteConfirm(t: Texts, sheet: Sheet) {
     p {
         +t.deleteQuestionStart
         code { +sheet.path }
-        +t.deleteQuestionEnd(sheet.title)
+        +t.deleteQuestionEnd(sheet.title).keepBackslashAmp()
     }
     if (sheet.isProtected) p { +t.deleteProtectedWarning }
     form(action = "$ADMIN_PATH/delete/${sheet.id}", method = FormMethod.post) {
