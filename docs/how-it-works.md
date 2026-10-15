@@ -85,12 +85,12 @@ commonmark with tables, strikethrough and task lists. Raw HTML is escaped. Links
 ## Admin login
 
 OIDC authorization code flow as confidential client (`client_secret_post`, token request as POST, scopes `openid` and `profile`).
-The OAuth state is bound to the browser through the cookie `knote_oauth_state` (path `/_auth/callback`, 10
+The OAuth state is bound to the browser through the cookie `__Secure-knote_oauth_state` (path `/_auth/callback`, 10
 minutes, compared in constant time). KNote reads `sub` from the userinfo endpoint and accepts only the accounts in
 `allowedSubjects`, or every account with `allowAnyAccount`. The display name (`name`, else `preferred_username`) is
-shown
-as "logged in as" in the overview. The admin cookie `knote_admin` is signed with HMAC SHA256, HttpOnly, Secure and
-`SameSite=Lax`. Its expiry and the `sub` are checked on every request. Logout only ends the KNote login, the
+shown as "logged in as" in the overview. The admin cookie `__Host-knote_admin` is signed with HMAC SHA256, HttpOnly,
+Secure and `SameSite=Lax`. The prefixes `__Host-` and `__Secure-` make the browser reject these cookies when another
+service on a subdomain or plain HTTP tries to set them. Its expiry and the `sub` are checked on every request. Logout only ends the KNote login, the
 session at the provider stays. Without login, a GET to an admin page redirects to the login, any other method gets
 a `401` page.
 

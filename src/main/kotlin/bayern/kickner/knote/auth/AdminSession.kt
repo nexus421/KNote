@@ -12,8 +12,11 @@ import io.ktor.server.response.*
 import io.ktor.server.sessions.*
 import kotlinx.serialization.Serializable
 
-/** Name of the admin login cookie. */
-const val ADMIN_COOKIE = "knote_admin"
+/**
+ * Name of the admin login cookie. The prefix `__Host-` makes the browser accept it only from exactly this host, over
+ * HTTPS, with `Path=/` and without `Domain`, so another service on a subdomain cannot set or overwrite it.
+ */
+const val ADMIN_COOKIE = "__Host-knote_admin"
 
 /** Name of the authentication provider that guards the admin pages. */
 const val ADMIN_AUTH = "admin"

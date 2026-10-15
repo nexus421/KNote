@@ -76,6 +76,7 @@ class OidcTest {
         assertEquals("openid profile", redirect.parameters["scope"])
         assertEquals("code", redirect.parameters["response_type"])
         val cookie = parseServerSetCookieHeader(response.headers.getAll(HttpHeaders.SetCookie).orEmpty().single { it.startsWith("$STATE_COOKIE=") })
+        assertEquals("__Secure-knote_oauth_state", cookie.name)
         assertEquals(redirect.parameters["state"], cookie.value)
         assertEquals(600, cookie.maxAge)
         assertEquals(CALLBACK_PATH, cookie.path)
@@ -96,6 +97,9 @@ class OidcTest {
         val cookies = response.headers.getAll(HttpHeaders.SetCookie).orEmpty()
         assertContains(cookies.single { it.startsWith("$STATE_COOKIE=") }, "Max-Age=0")
         val admin = parseServerSetCookieHeader(cookies.single { it.startsWith("$ADMIN_COOKIE=") })
+        // The rules of the __Host- prefix, without them the browser drops the cookie
+        assertEquals("__Host-knote_admin", admin.name)
+        assertNull(admin.domain)
         assertEquals("/", admin.path)
         assertEquals(43200, admin.maxAge)
         assertTrue(admin.secure)
@@ -227,7 +231,12 @@ class OidcTest {
 
         assertEquals(HttpStatusCode.SeeOther, response.status)
         assertEquals("/", response.headers[HttpHeaders.Location])
-        assertContains(response.headers.getAll(HttpHeaders.SetCookie).orEmpty().single { it.startsWith("$ADMIN_COOKIE=") }, "Max-Age=0")
+        val cleared = parseServerSetCookieHeader(response.headers.getAll(HttpHeaders.SetCookie).orEmpty().single { it.startsWith("$ADMIN_COOKIE=") })
+        assertEquals(0, cleared.maxAge)
+        // A browser deletes a __Host- cookie only with a Set-Cookie that follows the prefix rules itself
+        assertTrue(cleared.secure)
+        assertEquals("/", cleared.path)
+        assertNull(cleared.domain)
     }
 
     @Test

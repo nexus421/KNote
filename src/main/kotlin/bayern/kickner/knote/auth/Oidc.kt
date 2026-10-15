@@ -39,8 +39,12 @@ const val CALLBACK_PATH = "/_auth/callback"
 /** Ends the admin login (POST only). */
 const val LOGOUT_PATH = "/_auth/logout"
 
-/** Binds the OAuth state to the browser that started the login. */
-const val STATE_COOKIE = "knote_oauth_state"
+/**
+ * Binds the OAuth state to the browser that started the login. `__Secure-` instead of `__Host-`, because the
+ * cookie is limited to [CALLBACK_PATH] and `__Host-` requires `Path=/`. It still keeps the cookie from being set
+ * over plain HTTP.
+ */
+const val STATE_COOKIE = "__Secure-knote_oauth_state"
 
 /** Rate limit of the two login endpoints, keyed by client IP. */
 val LOGIN_RATE_LIMIT = RateLimitName("login")
