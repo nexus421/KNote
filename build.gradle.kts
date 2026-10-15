@@ -9,9 +9,15 @@ version = "1.2.0"
 
 repositories {
     mavenCentral()
-    maven {
-        name = "nexus421MavenReleases"
-        url = uri("https://maven.kickner.bayern/releases")
+    // Own libraries only from the own repository, and that repository only for them, so it can never serve another package
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "nexus421MavenReleases"
+                url = uri("https://maven.kickner.bayern/releases")
+            }
+        }
+        filter { includeGroup("bayern.kickner") }
     }
 }
 
