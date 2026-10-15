@@ -84,6 +84,9 @@ interface Texts {
     val preview: String
     val cancel: String
     val newSheetPasswordHint: String
+
+    /** Shown with the protection fields: an unprotected sheet is public, a missing link hides nothing. */
+    val unprotectedHint: String
     val passwordRepeat: String
     val editUnlockHint: String
 

@@ -434,6 +434,16 @@ class AdminRoutesTest {
     }
 
     @Test
+    fun `every editor says that an unprotected sheet is public`() = testApplication {
+        val plain = plainSheet("einkauf")
+        val admin = admin(plain, protectedSheet())
+
+        val pages = listOf(admin.get("/_admin/new"), admin.get("/_admin/edit/${plain.id}"), admin.post("/_admin/edit/${admin.store.find("privat")!!.id}/unlock", "password" to OLD_PASSWORD))
+
+        pages.forEach { assertContains(it.bodyAsText(), "Anyone who knows or guesses the path can read an unprotected sheet") }
+    }
+
+    @Test
     fun `the admin pages follow the configured language`() = testApplication {
         val admin = admin(protectedSheet(), config = testConfig(language = "de"))
 
@@ -441,7 +451,8 @@ class AdminRoutesTest {
         val editor = admin.get("/_admin/new").bodyAsText()
 
         listOf("<h1>Seiten</h1>", "Neue Seite", "Abmelden", "geschützt", "Bearbeiten").forEach { assertContains(overview, it) }
-        listOf("value=\"Anlegen\"", ">Vorschau<", "Beide Felder leer lassen für eine ungeschützte Seite").forEach { assertContains(editor, it) }
+        listOf("value=\"Anlegen\"", ">Vorschau<", "Beide Felder leer lassen für eine ungeschützte Seite", "Eine ungeschützte Seite kann jeder lesen, der ihren Pfad kennt oder errät")
+            .forEach { assertContains(editor, it) }
     }
 
     @Test

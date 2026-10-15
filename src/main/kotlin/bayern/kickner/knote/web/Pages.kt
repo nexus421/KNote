@@ -508,6 +508,7 @@ private fun FORM.protectionFields(t: Texts, target: EditorTarget, values: Editor
                 +" ${t.protectionChoice(choice)}"
             }
         }
+        p(classes = "hint") { +t.unprotectedHint }
         val hint = if (target == EditorTarget.New) "${t.newSheetPasswordHint} " else ""
         p(classes = "hint") { +"$hint${t.passwordHint(minPasswordLength)}" }
         label {

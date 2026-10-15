@@ -63,6 +63,9 @@ the content is lost. The admin can still delete the sheet.
 All PBKDF2 derivations run off the request threads and at most `cryptoParallelism` at once, so requests from many
 IPs cannot occupy every core.
 
+An unprotected sheet is public. Its path is not a secret: there is no rate limit on reading sheets, so a
+guessable path such as `/passwords` is found quickly. The editor says so next to the protection fields.
+
 A disabled sheet answers 404 to the public, its Markdown file too, but stays in the admin area and can be enabled
 again. Disabling does not change the time of the last change.
 

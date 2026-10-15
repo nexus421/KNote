@@ -68,6 +68,7 @@ object EnglishTexts : Texts {
     override val preview = "Preview"
     override val cancel = "Cancel"
     override val newSheetPasswordHint = "Leave both fields empty for an unprotected sheet."
+    override val unprotectedHint = "Anyone who knows or guesses the path can read an unprotected sheet, even without a link to it. Set a password for anything confidential."
     override val passwordRepeat = "Repeat password"
     override val editUnlockHint = "Enter the password of the sheet to edit it."
 

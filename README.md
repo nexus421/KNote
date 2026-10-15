@@ -6,8 +6,8 @@
 ![JDK](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fraw.githubusercontent.com%2Fnexus421%2FKNote%2Fmaster%2Fbuild.gradle.kts&search=JavaLanguageVersion%5C.of%5C%28%28%5Cd%2B%29%5C%29&replace=%241%20%28Corretto%29&label=JDK&logo=openjdk&logoColor=white&color=ED8B00)
 
 **K**otlin **Note**s: a small self hosted note service. Every note (a sheet) lives at its own URL and is readable
-without login. A sheet can have its own password, then it is stored encrypted. Managing sheets needs an admin login
-through OIDC.
+without login. A sheet can have its own password, then it is stored encrypted. Without one it is public: anyone who
+knows or guesses its path can read it. Managing sheets needs an admin login through OIDC.
 
 <p align="center"><img src="docs/images/start.webp" alt="KNote start page in dark mode" width="720"></p>
 

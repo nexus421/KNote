@@ -68,6 +68,7 @@ object GermanTexts : Texts {
     override val preview = "Vorschau"
     override val cancel = "Abbrechen"
     override val newSheetPasswordHint = "Beide Felder leer lassen für eine ungeschützte Seite."
+    override val unprotectedHint = "Eine ungeschützte Seite kann jeder lesen, der ihren Pfad kennt oder errät, auch ohne Link. Für Vertrauliches ein Passwort setzen."
     override val passwordRepeat = "Passwort wiederholen"
     override val editUnlockHint = "Zum Bearbeiten das Passwort der Seite eingeben."
 
