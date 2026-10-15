@@ -27,6 +27,7 @@ import bayern.kickner.knote.web.adminRoutes
 import bayern.kickner.knote.web.clientIp
 import bayern.kickner.knote.web.healthRoute
 import bayern.kickner.knote.web.knoteErrorPages
+import bayern.kickner.knote.web.rateLimitKey
 import bayern.kickner.knote.web.sheetRoutes
 import bayern.kickner.knote.web.startPage
 import bayern.kickner.knote.web.untrustedPeerWarning
@@ -224,15 +225,15 @@ fun Application.knote(
         oidc(config, httpClient)
         adminSession(config, clock)
     }
-    // Without requestKey all clients would share one limit
+    // Without requestKey all clients would share one limit. IPv6 clients share one per /64, see rateLimitKey
     install(RateLimit) {
         register(UNLOCK_RATE_LIMIT) {
             rateLimiter(limit = config.unlockAttemptsPerMinute, refillPeriod = 1.minutes)
-            requestKey { call -> call.clientIp(config.trustedProxyIp) }
+            requestKey { call -> rateLimitKey(call.clientIp(config.trustedProxyIp)) }
         }
         register(LOGIN_RATE_LIMIT) {
             rateLimiter(limit = config.loginAttemptsPerMinute, refillPeriod = 1.minutes)
-            requestKey { call -> call.clientIp(config.trustedProxyIp) }
+            requestKey { call -> rateLimitKey(call.clientIp(config.trustedProxyIp)) }
         }
     }
     routing {

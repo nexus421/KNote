@@ -145,6 +145,15 @@ class PublicRoutesTest {
     }
 
     @Test
+    fun `IPv6 clients in the same 64 prefix share one limit`() = testApplication {
+        val client = knoteApp(storeWithSheets(), testConfig(trustedProxyIp = "localhost", unlockAttemptsPerMinute = 1))
+
+        assertEquals(HttpStatusCode.Forbidden, client.unlock("privat/notiz", "wrong", forwardedFor = "2001:db8:1:2::1").status)
+        assertEquals(HttpStatusCode.TooManyRequests, client.unlock("privat/notiz", "wrong", forwardedFor = "2001:db8:1:2:abcd::7").status)
+        assertEquals(HttpStatusCode.Forbidden, client.unlock("privat/notiz", "wrong", forwardedFor = "2001:db8:1:3::1").status)
+    }
+
+    @Test
     fun `pages are english by default`() = testApplication {
         val client = knoteApp(storeWithSheets())
 

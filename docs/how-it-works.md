@@ -102,6 +102,10 @@ if the connection comes from `trustedProxyIp`. Every other peer is the client it
 The first request of every other peer is logged once as `Request from untrusted peer <ip>`. Excess requests get
 `429`.
 
+The rate limits count IPv4 clients per address and IPv6 clients per /64 prefix, because every IPv6 customer gets at
+least a /64 and could otherwise use a fresh address for every attempt. An IPv4-mapped address (`::ffff:a.b.c.d`)
+counts as its IPv4 address. The log always names the full address.
+
 ## Security headers
 
 On every response:
