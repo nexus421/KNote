@@ -5,7 +5,7 @@
 | Argument        | Default       | Description                                                                                                   |
 |-----------------|---------------|---------------------------------------------------------------------------------------------------------------|
 | `config=<path>` | `config.json` | Config file to load.                                                                                          |
-| `check`         |               | Loads and validates the config and every sheet file, then exits. Useful before a restart.                    |
+| `check`         |               | Loads and validates the config, every sheet file, the settings and the session key, then exits. Changes nothing on disk. |
 
 Without `check`, KNote starts the server. Any other argument is rejected.
 

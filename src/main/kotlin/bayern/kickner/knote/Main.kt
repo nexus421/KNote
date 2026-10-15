@@ -145,7 +145,8 @@ fun main(args: Array<String>) {
     }
 
     val sheetDir = Path.of(config.dataDir, "sheets").toAbsolutePath()
-    // `check` changes nothing on disk, the first real start creates the directory and the example sheet
+    // `check` changes nothing on disk, the first real start creates the directory and the example sheet. ArgsInterpreter
+    // only knows `key=value` pairs and `-flags`, so the bare word `check` is looked up directly
     if (args.contains("check") && Files.notExists(sheetDir)) {
         staticLog(KLogger.Level.INFO, TAG) { "Config file ${File(configPath).absolutePath} is valid. $sheetDir does not exist yet, the first start creates it with an example sheet${if (existingKey == null) ", and $keyFile" else ""}" }
         return
@@ -170,7 +171,6 @@ fun main(args: Array<String>) {
         }
     }
 
-    // ArgsInterpreter only knows `key=value` pairs and `-flags`, a bare word is checked directly
     if (args.contains("check")) {
         val keyNote = if (existingKey == null) ", the first start creates $keyFile" else ""
         staticLog(KLogger.Level.INFO, TAG) { "Config file ${File(configPath).absolutePath} is valid, ${store.size} sheet(s) in $sheetDir are readable$keyNote" }

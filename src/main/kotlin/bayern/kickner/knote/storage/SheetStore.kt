@@ -100,9 +100,9 @@ class SheetStore private constructor(private val dir: Path, initial: Map<String,
 
     companion object {
         /**
-         * Loads every `*.json` in [dir] and creates [dir] if it is missing (see [createPrivateDirectory]). Fails with all problems at once:
-         * unreadable files, unknown keys, a file name that does not match the id, invalid paths and paths used by
-         * more than one file. Other files, such as `*.tmp` left behind by a crash, are ignored.
+         * Loads every `*.json` in [dir] and creates [dir] if it is missing (see [createPrivateDirectory]). Fails with
+         * all problems at once: unreadable files, unknown keys, a file name that does not match the id, invalid paths
+         * and paths used by more than one file. Other files, such as `*.tmp` left behind by a crash, are ignored.
          */
         fun load(dir: Path): ResultOf2<SheetStore, List<String>> {
             val files = runCatching {

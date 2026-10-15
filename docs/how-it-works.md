@@ -42,9 +42,9 @@ the file, so no URL ever becomes a file name. All sheets are kept in memory and 
 change is written to a temp file in the same directory and moved over the old file atomically, and only then
 applied in memory. At startup every file is checked: unknown keys, a file name that does not match the id, an
 invalid path and a path used twice are errors (exit code 65). Leftover `*.tmp` files are ignored. If the directory
-does not exist yet, the first start creates it with an English example sheet at `/example`. KNote creates `dataDir` and the
-sheet directory readable by the owner only (700) and writes every file with 600. Directories that already exist keep
-their permissions.
+does not exist yet, the first start creates it with an English example sheet at `/example`. KNote creates `dataDir`
+and the sheet directory readable by the owner only (700) and writes every file with 600. Directories that already
+exist keep their permissions.
 
 Settings made in the admin area live in `<dataDir>/settings.json`, written the same atomic way. A missing file
 means the defaults, a broken one stops the start with exit code 65. The start page lists no sheets by default. In
@@ -96,9 +96,9 @@ minutes, compared in constant time). KNote reads `sub` from the userinfo endpoin
 `allowedSubjects`, or every account with `allowAnyAccount`. The display name (`name`, else `preferred_username`) is
 shown as "logged in as" in the overview. The admin cookie `__Host-knote_admin` is signed with HMAC SHA256, HttpOnly,
 Secure and `SameSite=Lax`. The prefixes `__Host-` and `__Secure-` make the browser reject these cookies when another
-service on a subdomain or plain HTTP tries to set them. Its expiry and the `sub` are checked on every request. Logout only ends the KNote login, the
-session at the provider stays. Without login, a GET to an admin page redirects to the login, any other method gets
-a `401` page.
+service on a subdomain or plain HTTP tries to set them. Its expiry and the `sub` are checked on every request.
+Logout only ends the KNote login, the session at the provider stays. Without login, a GET to an admin page redirects
+to the login, any other method gets a `401` page.
 
 ## Client IP and rate limits
 
