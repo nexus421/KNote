@@ -23,7 +23,7 @@ so a newer default JDK on the build machine does not matter and IntelliJ follows
 
 Copy `knote.jar`, your `config.json` and [knote.service](../knote.service) to the server. The JAR needs a
 Java 25 runtime, Amazon Corretto is recommended. Run KNote as its own unprivileged user and protect the config, it
-holds the client secret and the session key:
+holds the client secret:
 
 ```bash
 useradd --system --create-home --home-dir /home/knote --shell /usr/sbin/nologin knote
@@ -64,8 +64,9 @@ Adjust the Java path in `knote.service` to your installation. systemd restarts K
 code 1), at most 5 times in 5 minutes, but not after exit codes 64, 65 or 78 (see
 [configuration.md](configuration.md)).
 
-On the first start KNote creates the sheet directory with an example sheet at `/example`. Delete it in the admin
-area when you no longer need it, it does not come back. `check` changes nothing on disk.
+On the first start KNote creates the sheet directory with an example sheet at `/example` and the session key in
+`<dataDir>/session.key`. Delete the example in the admin area when you no longer need it, it does not come back.
+`check` changes nothing on disk.
 
 ## 5. Who may log in
 
@@ -96,6 +97,7 @@ With a protected sheet `test/locked`:
 
 ## Backup and update
 
-Sheets are plain JSON files in `<dataDir>/sheets`, the admin settings are `<dataDir>/settings.json`. Protected
-sheets stay encrypted in every backup. To update,
+Sheets are plain JSON files in `<dataDir>/sheets`, the admin settings are `<dataDir>/settings.json`, the session
+key is `<dataDir>/session.key`. Back up the whole `dataDir`, and keep the backup as private as the server: the key
+signs admin logins. Protected sheets stay encrypted in every backup. To update,
 replace the JAR and restart the service.

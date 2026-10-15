@@ -6,18 +6,24 @@
 |-----------------|---------------|---------------------------------------------------------------------------------------------------------------|
 | `config=<path>` | `config.json` | Config file to load.                                                                                          |
 | `check`         |               | Loads and validates the config and every sheet file, then exits. Useful before a restart.                    |
-| `key`           |               | Prints a fresh `sessionSignKey` (64 hex characters) and exits. Needs no config. Key on stdout, hint on stderr. |
 
-Without `check` or `key`, KNote starts the server. Any other argument is rejected.
+Without `check`, KNote starts the server. Any other argument is rejected.
 
 | Exit code | Meaning                                                                                    |
 |-----------|--------------------------------------------------------------------------------------------|
-| `0`       | `check`: config and sheets are valid. `key`: key printed.                                  |
+| `0`       | `check`: config, sheets, settings and session key are valid.                               |
 | `1`       | The server could not start, e.g. the port is taken. systemd retries.                       |
 | `64`      | Unknown command line argument. systemd does not retry.                                     |
-| `65`      | A sheet file or `settings.json` is broken. The log lists every problem. systemd does not retry. |
+| `65`      | A sheet file, `settings.json` or `session.key` is broken or cannot be written. The log lists every problem. systemd does not retry. |
 | `78`      | The config file is missing or invalid. systemd does not retry.                             |
 | `143`     | The JVM's exit code after SIGTERM (`systemctl stop`). A clean stop, not a failure.         |
+
+## Session key
+
+The admin cookie and the unlock proofs are signed with a 256 bit key in `<dataDir>/session.key`. The first start
+creates it, readable by the owner only. Keep it secret and include it in backups. To log every admin out, stop
+KNote, delete the file and start again. Configs from before this file still list `sessionSignKey`: remove that
+line, KNote refuses to start until then.
 
 ## Config file
 
@@ -30,9 +36,8 @@ are reported at once, and error messages never contain the file content. See
 | `listenHost`              | String | `"127.0.0.1"` | not blank                                           | Interface to bind to. Use `"0.0.0.0"` or a specific address if the reverse proxy runs on another machine or container.                      |
 | `listenPort`              | Int    | `8080`        | 1 to 65535                                          | Port to listen on.                                                                                                                          |
 | `publicBaseUrl`           | String | required      | `https://` origin, no path, no trailing slash       | Address the browser sees, e.g. `https://notes.example.org`. Builds the OAuth callback URL and is the only origin admin forms may come from. |
-| `dataDir`                 | String | `"data"`      | not blank                                           | Sheets live in `<dataDir>/sheets`.                                                                                                          |
+| `dataDir`                 | String | `"data"`      | not blank                                           | Sheets live in `<dataDir>/sheets`, the session key in `<dataDir>/session.key`.                                                              |
 | `trustedProxyIp`          | String | required      | IPv4 address                                        | Address the reverse proxy connects from. Only this peer may name the client in `X-Forwarded-For`.                                           |
-| `sessionSignKey`          | String | required      | exactly 64 hex characters                           | HMAC key of the admin cookie. Create it with `java -jar knote.jar key`.                                                                     |
 | `sessionHours`            | Int    | `12`          | 1 to 720                                            | Lifetime of an admin login.                                                                                                                 |
 | `unlockAttemptsPerMinute` | Int    | `5`           | at least 1                                          | Password attempts per client IP and minute, public and admin unlock combined.                                                               |
 | `loginAttemptsPerMinute`  | Int    | `10`          | at least 1                                          | Requests to `/_auth/login` and `/_auth/callback` per client IP and minute.                                                                  |

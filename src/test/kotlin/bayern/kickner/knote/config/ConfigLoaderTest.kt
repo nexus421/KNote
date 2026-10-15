@@ -1,11 +1,8 @@
 package bayern.kickner.knote.config
 
-import bayern.kickner.knote.cli.generateSessionKey
 import kotnexlib.ResultOf2
 import java.io.File
 import kotlin.test.*
-
-private const val KEY = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
 
 /** A valid config as JSON. Every parameter replaces one value, `null` leaves the field out to test its default. */
 internal fun configJson(
@@ -14,7 +11,6 @@ internal fun configJson(
     publicBaseUrl: String = "https://notes.example.org",
     dataDir: String? = null,
     trustedProxyIp: String = "10.0.0.2",
-    sessionSignKey: String = KEY,
     sessionHours: Int? = null,
     unlockAttemptsPerMinute: Int? = null,
     loginAttemptsPerMinute: Int? = null,
@@ -48,7 +44,6 @@ internal fun configJson(
           ${optional.joinToString("") { "$it,\n" }}
           "publicBaseUrl": "$publicBaseUrl",
           "trustedProxyIp": "$trustedProxyIp",
-          "sessionSignKey": "$sessionSignKey",
           "oidc": {
             "authorizeUrl": "$authorizeUrl",
             "tokenUrl": "$tokenUrl",
@@ -87,10 +82,9 @@ class ConfigLoaderTest {
         val message = failure(loadConfig("config.example.json", cpuCount = 4))
 
         val issues = message.lines().drop(1).map { it.trim() }
-        assertEquals(3, issues.size, message)
-        assertContains(issues[0], "sessionSignKey")
-        assertContains(issues[1], "oidc.clientId still holds the placeholder")
-        assertContains(issues[2], "oidc.clientSecret still holds the placeholder")
+        assertEquals(2, issues.size, message)
+        assertContains(issues[0], "oidc.clientId still holds the placeholder")
+        assertContains(issues[1], "oidc.clientSecret still holds the placeholder")
     }
 
     @Test
@@ -141,9 +135,13 @@ class ConfigLoaderTest {
     }
 
     @Test
-    fun `a generated key is accepted, upper case hex as well`() {
-        assertIs<ResultOf2.Success<AppConfig>>(load(configJson(sessionSignKey = generateSessionKey())))
-        assertIs<ResultOf2.Success<AppConfig>>(load(configJson(sessionSignKey = KEY.uppercase())))
+    fun `the removed sessionSignKey gets its own message`() {
+        val json = configJson().replaceFirst("{", "{\n\"sessionSignKey\": \"00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff\",")
+
+        val message = failure(load(json))
+
+        assertContains(message, "sessionSignKey is no longer used, remove it")
+        assertFalse(message.contains("0011223344"), message)
     }
 
     @Test
@@ -163,8 +161,6 @@ class ConfigLoaderTest {
             configJson(trustedProxyIp = "01.2.3.4") to "trustedProxyIp",
             configJson(trustedProxyIp = "fd42::1") to "trustedProxyIp",
             configJson(trustedProxyIp = "10.1.1.1 ") to "trustedProxyIp",
-            configJson(sessionSignKey = KEY.dropLast(1)) to "sessionSignKey",
-            configJson(sessionSignKey = KEY.dropLast(1) + "g") to "sessionSignKey",
             configJson(sessionHours = 0) to "sessionHours",
             configJson(sessionHours = 721) to "sessionHours",
             configJson(unlockAttemptsPerMinute = 0) to "unlockAttemptsPerMinute",
@@ -261,7 +257,6 @@ class ConfigLoaderTest {
         val config = assertIs<ResultOf2.Success<AppConfig>>(load(configJson())).value
 
         val printed = config.toString()
-        assertFalse(printed.contains(KEY), printed)
         assertFalse(printed.contains("secret-value"), printed)
     }
 

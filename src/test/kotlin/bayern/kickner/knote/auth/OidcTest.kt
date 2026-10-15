@@ -58,11 +58,6 @@ class OidcTest {
     }
 
     @Test
-    fun `the sign key is read case insensitive`() {
-        assertContentEquals(TEST_SIGN_KEY.hexToByteArray(), TEST_SIGN_KEY.uppercase().hexToByteArray())
-    }
-
-    @Test
     fun `login redirects to the provider and sets the state cookie`() = testApplication {
         val client = knoteApp()
 

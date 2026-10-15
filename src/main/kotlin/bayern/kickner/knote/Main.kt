@@ -8,12 +8,14 @@ import bayern.kickner.knote.auth.adminCookie
 import bayern.kickner.knote.auth.adminSession
 import bayern.kickner.knote.auth.authRoutes
 import bayern.kickner.knote.auth.oidc
-import bayern.kickner.knote.cli.generateSessionKey
 import bayern.kickner.knote.config.AppConfig
 import bayern.kickner.knote.config.configWarnings
 import bayern.kickner.knote.config.loadConfig
 import bayern.kickner.knote.crypto.CryptoGate
+import bayern.kickner.knote.crypto.SESSION_KEY_FILE
 import bayern.kickner.knote.crypto.UnlockProof
+import bayern.kickner.knote.crypto.createSessionKey
+import bayern.kickner.knote.crypto.readSessionKey
 import bayern.kickner.knote.settings.SettingsStore
 import bayern.kickner.knote.i18n.Language
 import bayern.kickner.knote.i18n.TextsKey
@@ -71,8 +73,8 @@ private const val EXIT_START_FAILED = 1
 private const val EXIT_USAGE = 64
 
 /**
- * `EX_DATAERR` from sysexits.h: at least one sheet file is broken. knote.service does not restart on it, because a
- * restart repairs no file.
+ * `EX_DATAERR` from sysexits.h: a sheet file, the settings or the session key is broken or cannot be written.
+ * knote.service does not restart on it, because a restart repairs no file.
  */
 private const val EXIT_DATA_ERROR = 65
 
@@ -82,7 +84,7 @@ private const val EXIT_CONFIG_ERROR = 78
 /** Settings changed in the admin area, next to the sheet directory in `dataDir`. */
 private const val SETTINGS_FILE = "settings.json"
 
-private const val USAGE = "Usage: java -jar knote.jar [config=<path>] [check | key]"
+private const val USAGE = "Usage: java -jar knote.jar [config=<path>] [check]"
 
 /**
  * Room for the form fields around the Markdown. The Markdown itself counts three times: a form post percent encodes
@@ -101,9 +103,10 @@ internal val appVersion: String =
  * Entry point. Loads the config (`config=<path>`, default `config.json` in the working directory) and all sheets,
  * then serves until the process is stopped.
  *
- * `key` prints a fresh `sessionSignKey` and needs no config. `check` loads and validates config and sheets, then
- * exits without changing anything. On the first start the sheet directory is created with an example sheet. Exit codes: [EXIT_USAGE] for an unknown argument, [EXIT_CONFIG_ERROR] for a rejected config,
- * [EXIT_DATA_ERROR] for broken sheet files, [EXIT_START_FAILED] if the server cannot start.
+ * `check` loads and validates config, sheets, settings and session key, then exits without changing anything. On the
+ * first start the sheet directory is created with an example sheet, and the session key file with a fresh key. Exit
+ * codes: [EXIT_USAGE] for an unknown argument, [EXIT_CONFIG_ERROR] for a rejected config, [EXIT_DATA_ERROR] for
+ * broken files in `dataDir`, [EXIT_START_FAILED] if the server cannot start.
  */
 fun main(args: Array<String>) {
     // The QR codes are drawn with Java2D, a server has no display
@@ -121,14 +124,6 @@ fun main(args: Array<String>) {
         exitProcess(EXIT_USAGE)
     }
 
-    // ArgsInterpreter only knows `key=value` pairs and `-flags`, a bare word is checked directly
-    if (args.contains("key")) {
-        // Key on stdout, hint on stderr, so `KEY=$(java -jar knote.jar key)` captures only the key
-        System.err.println("Fresh sessionSignKey for config.json. Keep it secret:")
-        println(generateSessionKey())
-        return
-    }
-
     val configPath = ArgsInterpreter(args).getValue("config") ?: "config.json"
     val config = when (val result = loadConfig(configPath)) {
         is ResultOf2.Success -> result.value
@@ -139,10 +134,19 @@ fun main(args: Array<String>) {
     }
     configWarnings(config).forEach { warning -> staticLog(KLogger.Level.WARN, TAG) { warning } }
 
+    val keyFile = Path.of(config.dataDir, SESSION_KEY_FILE).toAbsolutePath()
+    val existingKey = when (val result = readSessionKey(keyFile)) {
+        is ResultOf2.Success -> result.value
+        is ResultOf2.Failure -> {
+            staticLog(KLogger.Level.ERROR, TAG) { result.value }
+            exitProcess(EXIT_DATA_ERROR)
+        }
+    }
+
     val sheetDir = Path.of(config.dataDir, "sheets").toAbsolutePath()
     // `check` changes nothing on disk, the first real start creates the directory and the example sheet
     if (args.contains("check") && Files.notExists(sheetDir)) {
-        staticLog(KLogger.Level.INFO, TAG) { "Config file ${File(configPath).absolutePath} is valid. $sheetDir does not exist yet, the first start creates it with an example sheet" }
+        staticLog(KLogger.Level.INFO, TAG) { "Config file ${File(configPath).absolutePath} is valid. $sheetDir does not exist yet, the first start creates it with an example sheet${if (existingKey == null) ", and $keyFile" else ""}" }
         return
     }
     val store = when (val result = openStore(sheetDir)) {
@@ -161,12 +165,22 @@ fun main(args: Array<String>) {
         }
     }
 
+    // ArgsInterpreter only knows `key=value` pairs and `-flags`, a bare word is checked directly
     if (args.contains("check")) {
-        staticLog(KLogger.Level.INFO, TAG) { "Config file ${File(configPath).absolutePath} is valid, ${store.size} sheet(s) in $sheetDir are readable" }
+        val keyNote = if (existingKey == null) ", the first start creates $keyFile" else ""
+        staticLog(KLogger.Level.INFO, TAG) { "Config file ${File(configPath).absolutePath} is valid, ${store.size} sheet(s) in $sheetDir are readable$keyNote" }
         return
     }
 
-    val server = knoteServer(config, store, settings, sheetDir)
+    val sessionKey = existingKey ?: when (val result = createSessionKey(keyFile)) {
+        is ResultOf2.Success -> result.value.also { staticLog(KLogger.Level.INFO, TAG) { "First start: created the session key in $keyFile" } }
+        is ResultOf2.Failure -> {
+            staticLog(KLogger.Level.ERROR, TAG) { result.value }
+            exitProcess(EXIT_DATA_ERROR)
+        }
+    }
+
+    val server = knoteServer(config, store, settings, sessionKey, sheetDir)
     runCatching { server.start(wait = true) }.onFailure { error ->
         staticLog(KLogger.Level.ERROR, TAG) { "Could not start on ${config.listenHost}:${config.listenPort}: ${error.rootCause().message}" }
         exitProcess(EXIT_START_FAILED)
@@ -182,13 +196,14 @@ fun knoteServer(
     config: AppConfig,
     store: SheetStore,
     settings: SettingsStore,
+    sessionKey: ByteArray,
     sheetDir: Path,
 ): EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> {
     staticLog(KLogger.Level.INFO, TAG) {
         "KNote $appVersion listening on ${config.listenHost}:${config.listenPort} with ${store.size} sheet(s) in $sheetDir"
     }
     val httpClient = HttpClient(ClientCIO) { engine { requestTimeout = 10_000 } }
-    return embeddedServer(CIO, host = config.listenHost, port = config.listenPort) { knote(config, store, settings, httpClient) }
+    return embeddedServer(CIO, host = config.listenHost, port = config.listenPort) { knote(config, store, settings, sessionKey, httpClient) }
 }
 
 /**
@@ -196,6 +211,7 @@ fun knoteServer(
  * fake OIDC provider, a fixed clock and a temporary sheet directory.
  *
  * @param settings The settings changed in the admin area.
+ * @param sessionKey Signs the admin cookie and the unlock proofs, from `readSessionKey`.
  * @param httpClient Calls the token and userinfo endpoints of the OIDC provider.
  * @param clock Current time in Unix milliseconds.
  * @param zone Time zone of the timestamps in the overview.
@@ -204,6 +220,7 @@ fun Application.knote(
     config: AppConfig,
     store: SheetStore,
     settings: SettingsStore,
+    sessionKey: ByteArray,
     httpClient: HttpClient,
     cryptoGate: CryptoGate = CryptoGate(config.cryptoParallelism),
     clock: () -> Long = System::currentTimeMillis,
@@ -220,7 +237,7 @@ fun Application.knote(
     // HEAD answers like GET without a body, monitoring tools and `curl -I` use it
     install(AutoHeadResponse)
     install(StatusPages) { knoteErrorPages() }
-    install(Sessions) { adminCookie(config) }
+    install(Sessions) { adminCookie(config, sessionKey) }
     install(Authentication) {
         oidc(config, httpClient)
         adminSession(config, clock)
@@ -241,12 +258,12 @@ fun Application.knote(
         healthRoute()
         startPage(store, settings, config, clock)
         authRoutes(config, httpClient, clock)
-        adminRoutes(store, settings, cryptoGate, UnlockProof(config.sessionSignKey.hexToByteArray()), config, clock, zone)
+        adminRoutes(store, settings, cryptoGate, UnlockProof(sessionKey), config, clock, zone)
         sheetRoutes(store, cryptoGate, config, zone, clock)
     }
 }
 
 /** True for every argument KNote knows. */
-private fun isKnownArgument(arg: String) = arg == "key" || arg == "check" || arg.startsWith("config=")
+private fun isKnownArgument(arg: String) = arg == "check" || arg.startsWith("config=")
 
 private fun Throwable.rootCause(): Throwable = generateSequence(this) { it.cause }.last()

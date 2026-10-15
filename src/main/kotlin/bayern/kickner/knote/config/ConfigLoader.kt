@@ -2,6 +2,7 @@ package bayern.kickner.knote.config
 
 import bayern.kickner.knote.i18n.Language
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import kotnexlib.ResultOf2
 import java.io.File
 import java.net.URI
@@ -13,7 +14,6 @@ const val PLACEHOLDER_PREFIX = "REPLACE_ME"
 const val MAX_SHEET_PASSWORD_LENGTH = 1024
 
 private val IPV4_REGEX = Regex("^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$")
-private val HEX_KEY_REGEX = Regex("^[0-9a-fA-F]{64}$")
 
 /** Plain HTTP is accepted for these hosts only, so KNote can be tried locally without TLS. */
 private val LOCAL_HOSTS = setOf("localhost", "127.0.0.1")
@@ -33,6 +33,8 @@ fun loadConfig(path: String, cpuCount: Int = Runtime.getRuntime().availableProce
 
     val text = runCatching { file.readText() }
         .getOrElse { return ResultOf2.Failure("Config file ${file.absolutePath} could not be read: ${it.message}") }
+    if (hasRemovedSessionKey(text))
+        return ResultOf2.Failure("Config file ${file.absolutePath} is invalid:\n  sessionSignKey is no longer used, remove it. KNote now creates the key in dataDir on the first start, every admin logs in again once")
     val config = runCatching { Json.decodeFromString<AppConfig>(text) }
         .getOrElse { return ResultOf2.Failure("Config file ${file.absolutePath} could not be parsed: ${firstLineOf(it.message)}") }
 
@@ -53,6 +55,13 @@ fun configWarnings(config: AppConfig): List<String> {
 }
 
 /**
+ * True if [text] still has `sessionSignKey`, which moved from the config to `dataDir`. Its own message instead of
+ * the generic "unknown key", so an update tells what to do.
+ */
+private fun hasRemovedSessionKey(text: String): Boolean =
+    runCatching { Json.parseToJsonElement(text).jsonObject.containsKey("sessionSignKey") }.getOrDefault(false)
+
+/**
  * Keeps only the first line of a kotlinx.serialization message: the following lines are either a developer hint
  * ("Use 'ignoreUnknownKeys = true' ...") or the offending document ("JSON input: ..."), which holds secrets.
  */
@@ -68,7 +77,6 @@ private fun validate(config: AppConfig, cpuCount: Int): List<String> {
         issues += "publicBaseUrl must be an https:// origin without path and trailing slash, e.g. https://notes.example.org (http:// only for localhost)"
     if (config.dataDir.isBlank()) issues += "dataDir must not be blank"
     if (IPV4_REGEX.matches(config.trustedProxyIp).not()) issues += "trustedProxyIp must be an IPv4 address"
-    if (HEX_KEY_REGEX.matches(config.sessionSignKey).not()) issues += "sessionSignKey must be exactly 64 hex characters, create one with 'java -jar knote.jar key'"
     if (config.sessionHours !in 1..720) issues += "sessionHours must be between 1 and 720"
     if (config.unlockAttemptsPerMinute < 1) issues += "unlockAttemptsPerMinute must be at least 1"
     if (config.loginAttemptsPerMinute < 1) issues += "loginAttemptsPerMinute must be at least 1"

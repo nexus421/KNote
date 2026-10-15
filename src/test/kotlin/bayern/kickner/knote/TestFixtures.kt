@@ -48,7 +48,6 @@ internal fun testConfig(
     publicBaseUrl = PUBLIC_BASE_URL,
     dataDir = dataDir,
     trustedProxyIp = trustedProxyIp,
-    sessionSignKey = TEST_SIGN_KEY,
     sessionHours = sessionHours,
     unlockAttemptsPerMinute = unlockAttemptsPerMinute,
     loginAttemptsPerMinute = loginAttemptsPerMinute,
@@ -126,7 +125,7 @@ internal fun ApplicationTestBuilder.knoteApp(
         }
     }
     val providerClient = createClient { }
-    application { knote(config, store, settings, providerClient, CryptoGate(1), clock, ZoneId.of("Europe/Berlin")) }
+    application { knote(config, store, settings, TEST_SIGN_KEY.hexToByteArray(), providerClient, CryptoGate(1), clock, ZoneId.of("Europe/Berlin")) }
     return createClient { followRedirects = false }
 }
 

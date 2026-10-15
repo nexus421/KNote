@@ -13,7 +13,6 @@ import kotlinx.serialization.Serializable
  * @property dataDir Data directory. Sheets live in `<dataDir>/sheets`.
  * @property trustedProxyIp IPv4 address the reverse proxy connects from. Only this peer may name the client in
  * `X-Forwarded-For`.
- * @property sessionSignKey 32 bytes as 64 hex characters. Signs the admin cookie with HMAC-SHA256.
  * @property sessionHours Lifetime of an admin login.
  * @property unlockAttemptsPerMinute Password attempts per client IP and minute, public and admin unlock combined.
  * @property loginAttemptsPerMinute Requests to the two login endpoints per client IP and minute.
@@ -31,7 +30,6 @@ data class AppConfig(
     val publicBaseUrl: String,
     val dataDir: String = "data",
     val trustedProxyIp: String,
-    val sessionSignKey: String,
     val sessionHours: Int = 12,
     val unlockAttemptsPerMinute: Int = 5,
     val loginAttemptsPerMinute: Int = 10,

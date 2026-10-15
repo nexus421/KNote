@@ -37,13 +37,12 @@ Caddy or nginx).
 ```bash
 curl -LO https://github.com/nexus421/KNote/releases/latest/download/knote.jar
 curl -o config.json https://raw.githubusercontent.com/nexus421/KNote/master/config.example.json
-java -jar knote.jar key         # value for sessionSignKey
 java -jar knote.jar check       # validates config.json
 java -jar knote.jar
 ```
 
-Fill in `config.json` before the check: your public URL, the session key, the OIDC client and the address of your
-reverse proxy and who is admin. Register KNote at your OIDC provider with the callback `<public URL>/_auth/callback`
+Fill in `config.json` before the check: your public URL, the OIDC client, the address of your reverse proxy and
+who is admin. Register KNote at your OIDC provider with the callback `<public URL>/_auth/callback`
 (see [Deployment](docs/deployment.md#5-who-may-log-in)).
 For a local try without TLS, `http://localhost:8080` works as public URL. On its first start KNote creates an
 example sheet at `/example`.

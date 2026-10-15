@@ -4,7 +4,6 @@
   "publicBaseUrl": "https://notes.example.org",
   "dataDir": "data",
   "trustedProxyIp": "10.0.0.2",
-  "sessionSignKey": "REPLACE_ME_WITH_OUTPUT_OF_knote_key",
   "sessionHours": 12,
   "unlockAttemptsPerMinute": 5,
   "loginAttemptsPerMinute": 10,

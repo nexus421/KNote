@@ -52,15 +52,17 @@ fun ApplicationCall.hasAdminLogin(config: AppConfig, clock: () -> Long): Boolean
  * Registers the admin cookie: HttpOnly, Secure and `SameSite=Lax`, signed with HMAC-SHA256. Ktor does not check
  * whether the connection is HTTPS when it sets a Secure cookie, so it works behind Zoraxy, which speaks HTTPS to
  * the browser and HTTP to KNote.
+ *
+ * @param sessionKey HMAC key from `readSessionKey`.
  */
-fun SessionsConfig.adminCookie(config: AppConfig) {
+fun SessionsConfig.adminCookie(config: AppConfig, sessionKey: ByteArray) {
     cookie<AdminSession>(ADMIN_COOKIE) {
         cookie.path = "/"
         cookie.httpOnly = true
         cookie.secure = true
         cookie.maxAgeInSeconds = config.sessionHours * 3600L
         cookie.extensions["SameSite"] = "Lax"
-        transform(SessionTransportTransformerMessageAuthentication(config.sessionSignKey.hexToByteArray()))
+        transform(SessionTransportTransformerMessageAuthentication(sessionKey))
     }
 }
 

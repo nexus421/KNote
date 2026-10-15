@@ -14,7 +14,7 @@ private const val CONTEXT = "knote-unlock-proof\n"
  * version and password, and the save only checks that HMAC: in constant time, without PBKDF2, and a guessed password
  * reveals nothing because the browser cannot create a matching proof.
  *
- * @param key HMAC key, the `sessionSignKey` of the config.
+ * @param key HMAC key, the session key (see `readSessionKey`).
  */
 class UnlockProof(key: ByteArray) {
     private val keySpec = SecretKeySpec(key, "HmacSHA256")

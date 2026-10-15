@@ -2,6 +2,8 @@ package bayern.kickner.knote
 
 import bayern.kickner.knote.config.configJson
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermission
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.time.Instant
@@ -10,6 +12,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 private class Run(val exitCode: Int, val stdout: String, val stderr: String)
@@ -37,15 +40,6 @@ private fun directoryWithConfig(json: String = configJson(listenPort = 1)): File
 class MainTest {
 
     @Test
-    fun `key prints only 64 hex characters to stdout and needs no config`() {
-        val run = knote("key", workingDirectory = tempDir().toFile())
-
-        assertEquals(0, run.exitCode, run.stderr)
-        assertTrue(Regex("[0-9a-f]{64}").matches(run.stdout.trim()), "stdout was: ${run.stdout}")
-        assertContains(run.stderr, "Keep it secret")
-    }
-
-    @Test
     fun `an unknown argument exits with 64`() {
         val run = knote("chek", workingDirectory = tempDir().toFile())
 
@@ -66,7 +60,6 @@ class MainTest {
         val run = knote("config=${File("config.example.json").absolutePath}", "check", workingDirectory = tempDir().toFile())
 
         assertEquals(78, run.exitCode, run.stderr)
-        assertContains(run.stderr, "sessionSignKey")
         assertContains(run.stderr, "oidc.clientSecret still holds the placeholder")
     }
 
@@ -80,6 +73,8 @@ class MainTest {
 
         assertEquals(0, run.exitCode, run.stderr)
         assertContains(run.stdout, "is valid, 1 sheet(s)")
+        assertContains(run.stdout, "the first start creates ${File(directory, "data/session.key").absolutePath}")
+        assertFalse(File(directory, "data/session.key").exists())
     }
 
     @Test
@@ -127,6 +122,44 @@ class MainTest {
             assertEquals(1, run.exitCode, run.stderr)
             assertContains(run.stderr, "Could not start on 127.0.0.1:${taken.localPort}")
         }
+    }
+
+    @Test
+    fun `the first start creates the session key, owner only, and later starts keep it`() {
+        val directory = directoryWithConfig()
+        val keyFile = File(directory, "data/session.key")
+        ServerSocket(0, 50, InetAddress.getLoopbackAddress()).use { taken ->
+            val config = configJson(listenPort = taken.localPort)
+            File(directory, "config.json").writeText(config)
+
+            val first = knote(workingDirectory = directory)
+            val key = keyFile.readText()
+            val second = knote(workingDirectory = directory)
+
+            assertContains(first.stdout, "First start: created the session key in ${keyFile.absolutePath}")
+            assertTrue(Regex("[0-9a-f]{64}\n").matches(key), key)
+            assertEquals(setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE), Files.getPosixFilePermissions(keyFile.toPath()))
+            assertFalse(second.stdout.contains("created the session key"), second.stdout)
+            assertEquals(key, keyFile.readText())
+        }
+    }
+
+    @Test
+    fun `a broken session key exits with 65 and never prints it`() {
+        val directory = directoryWithConfig()
+        File(directory, "data/sheets").mkdirs()
+        File(directory, "data/session.key").writeText("secret-but-not-hex")
+
+        val run = knote("check", workingDirectory = directory)
+
+        assertEquals(65, run.exitCode, run.stderr)
+        assertContains(run.stderr, "session.key does not hold a key of 64 hex characters")
+        assertFalse(run.stderr.contains("secret-but-not-hex"))
+    }
+
+    @Test
+    fun `the former key command is an unknown argument`() {
+        assertEquals(64, knote("key", workingDirectory = tempDir().toFile()).exitCode)
     }
 }
 

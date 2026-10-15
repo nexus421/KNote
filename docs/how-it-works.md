@@ -56,7 +56,7 @@ iterations, fresh salt and nonce per save, no compression). Path and title stay 
 without passwords. Opening a protected sheet shows a password form. The POST answers with the rendered sheet
 directly, there is no session: a reload asks for the password again. Editing a protected sheet needs its password
 too. The unlock is rate limited like the public one. The editor keeps the password in a hidden field together
-with a proof from the unlock (HMAC with `sessionSignKey` over sheet id, version and password). Every save checks that
+with a proof from the unlock (HMAC with the session key over sheet id, version and password). Every save checks that
 proof before encrypting again, so a save never tells whether a guessed password is right. A forgotten password means
 the content is lost. The admin can still delete the sheet.
 
