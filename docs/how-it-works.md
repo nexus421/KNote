@@ -57,8 +57,9 @@ without passwords. Opening a protected sheet shows a password form. The POST ans
 directly, there is no session: a reload asks for the password again. Editing a protected sheet needs its password
 too. The unlock is rate limited like the public one. The editor keeps the password in a hidden field together
 with a proof from the unlock (HMAC with the session key over sheet id, version and password). Every save checks that
-proof before encrypting again, so a save never tells whether a guessed password is right. A forgotten password means
-the content is lost. The admin can still delete the sheet.
+proof before encrypting again, so a save never tells whether a guessed password is right. An unlocked sheet embeds
+its Markdown in the download link as `data:` URL, so the page never holds the password and the download needs no
+second derivation. A forgotten password means the content is lost. The admin can still delete the sheet.
 
 All PBKDF2 derivations run off the request threads and at most `cryptoParallelism` at once, so requests from many
 IPs cannot occupy every core.

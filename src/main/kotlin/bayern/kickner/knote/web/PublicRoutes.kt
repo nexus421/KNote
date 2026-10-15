@@ -111,7 +111,7 @@ fun Route.sheetRoutes(store: SheetStore, gate: CryptoGate, config: AppConfig, zo
                     else {
                         val editHref = call.editHref(sheet, config, clock)
                         call.respondPage(title = sheet.title) {
-                            val download = MarkdownDownload.Form(sheet.url(download = true), password)
+                            val download = MarkdownDownload.Inline(sheet.markdownFileName(), result.value)
                             sheetView(t, sheet.title, renderMarkdown(result.value), formatTime(sheet.updated, zone), download, editHref)
                         }
                     }
@@ -144,10 +144,12 @@ private fun ApplicationCall.sheetRequest(): SheetRequest {
 /** Address of the sheet page, or of its Markdown file with [download]. */
 private fun Sheet.url(download: Boolean): String = "/$path" + if (download) MARKDOWN_SUFFIX else ""
 
-/** Answers [markdown] as a file named after the last path segment, e.g. `knote.md` for `projects/knote`. */
+/** Name of the Markdown file of [this], the last path segment, e.g. `knote.md` for `projects/knote`. */
+private fun Sheet.markdownFileName(): String = path.substringAfterLast('/') + MARKDOWN_SUFFIX
+
+/** Answers [markdown] as a file named [markdownFileName]. */
 private suspend fun ApplicationCall.respondMarkdownFile(sheet: Sheet, markdown: String) {
-    val fileName = sheet.path.substringAfterLast('/') + MARKDOWN_SUFFIX
-    response.header(HttpHeaders.ContentDisposition, ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, fileName).toString())
+    response.header(HttpHeaders.ContentDisposition, ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, sheet.markdownFileName()).toString())
     respondText(markdown, ContentType("text", "markdown").withCharset(Charsets.UTF_8))
 }
 

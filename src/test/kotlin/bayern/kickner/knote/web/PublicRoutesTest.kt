@@ -23,10 +23,12 @@ import io.ktor.http.parameters
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
+import java.util.Base64
 import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 private const val PASSWORD = "password-1234"
@@ -40,6 +42,14 @@ private suspend fun HttpClient.unlock(path: String, password: String, forwardedF
     submitForm("/$path", parameters { append("password", password) }) {
         if (forwardedFor != null) header(HttpHeaders.XForwardedFor, forwardedFor)
     }
+
+/** The Markdown of the `data:` download link in [page], after checking that it saves as [fileName]. */
+private fun inlineDownload(page: String, fileName: String): String {
+    val link = Regex("<a href=\"data:text/markdown;charset=utf-8;base64,([A-Za-z0-9+/=]*)\" class=\"no-print\" download=\"([^\"]*)\">").find(page)
+    assertNotNull(link, "no inline download in the page")
+    assertEquals(fileName, link.groupValues[2])
+    return Base64.getDecoder().decode(link.groupValues[1]).decodeToString()
+}
 
 class PublicRoutesTest {
 
@@ -249,13 +259,13 @@ class PublicRoutesTest {
     }
 
     @Test
-    fun `an unlocked sheet offers the download with the password`() = testApplication {
+    fun `an unlocked sheet embeds the download and never holds the password`() = testApplication {
         val client = knoteApp(storeWithSheets())
 
         val page = client.unlock("privat/notiz", PASSWORD).bodyAsText()
 
-        assertContains(page, "<form action=\"/privat/notiz.md\" method=\"post\" class=\"no-print\">")
-        assertContains(page, "name=\"password\" value=\"$PASSWORD\"")
+        assertFalse(page.contains(PASSWORD), "the page holds the password")
+        assertEquals("geheimer Inhalt", inlineDownload(page, "notiz.md"))
     }
 
     @Test
@@ -266,10 +276,9 @@ class PublicRoutesTest {
         val client = knoteApp(store)
 
         val page = client.unlock("tricky", BACKSLASH_AMP_PASSWORD).bodyAsText()
-        val hidden = Regex("name=\"password\" value=\"([^\"]*)\"").find(page)!!.groupValues[1].htmlDecoded()
-        val file = client.unlock("tricky.md", hidden)
+        val file = client.unlock("tricky.md", BACKSLASH_AMP_PASSWORD)
 
-        assertEquals(BACKSLASH_AMP_PASSWORD, hidden)
+        assertEquals(BACKSLASH_AMP_TEXT, inlineDownload(page, "tricky.md"))
         assertContains(page.htmlDecoded(), "<h1>A \\& B</h1>")
         assertContains(page.htmlDecoded(), "<title>A \\& B</title>")
         assertEquals(HttpStatusCode.OK, file.status)

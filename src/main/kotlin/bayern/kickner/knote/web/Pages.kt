@@ -20,6 +20,7 @@ import io.ktor.util.AttributeKey
 import kotlinx.html.*
 import java.time.Instant
 import java.time.ZoneId
+import java.util.Base64
 
 /**
  * The stylesheet, the logo and the favicon, served from `resources/static`. The version in the query makes browsers
@@ -240,8 +241,11 @@ sealed interface MarkdownDownload {
     /** A plain link, for an unprotected sheet. */
     data class Link(val href: String) : MarkdownDownload
 
-    /** A form that posts the password again, for an unlocked protected sheet. The page is never cached. */
-    data class Form(val action: String, val password: String) : MarkdownDownload
+    /**
+     * The [markdown] itself as `data:` URL, for an unlocked protected sheet. The page then holds no password and the
+     * download needs no second PBKDF2 derivation. The page is never cached.
+     */
+    data class Inline(val fileName: String, val markdown: String) : MarkdownDownload
 }
 
 /**
@@ -264,12 +268,16 @@ private fun FlowContent.sheetActions(t: Texts, download: MarkdownDownload, editH
     if (editHref != null) a(href = editHref, classes = "no-print") { +t.edit }
     when (download) {
         is MarkdownDownload.Link -> a(href = download.href, classes = "no-print") { +t.downloadMarkdown }
-        is MarkdownDownload.Form -> form(action = download.action, method = FormMethod.post, classes = "no-print") {
-            hiddenInput(name = "password") { value = download.password.keepBackslashAmp() }
-            button(type = ButtonType.submit, classes = "link") { +t.downloadMarkdown }
+        is MarkdownDownload.Inline -> a(href = markdownDataUrl(download.markdown), classes = "no-print") {
+            attributes["download"] = download.fileName
+            +t.downloadMarkdown
         }
     }
 }
+
+/** [markdown] as `data:` URL. Base64 holds neither `\` nor `&`, so kotlinx.html leaves it alone. */
+internal fun markdownDataUrl(markdown: String): String =
+    "data:text/markdown;charset=utf-8;base64," + Base64.getEncoder().encodeToString(markdown.encodeToByteArray())
 
 /** [millis] as `dd.MM.yyyy HH:mm:ss z` in [zone], e.g. `13.10.2026 16:20:31 CEST`. */
 fun formatTime(millis: Long, zone: ZoneId): String = Instant.ofEpochMilli(millis).atZone(zone).format(timestampFormat)
